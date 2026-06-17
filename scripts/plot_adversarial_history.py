@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
+os.environ.setdefault("MPLCONFIGDIR", str(Path(".matplotlib").resolve()))
+
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -28,4 +34,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

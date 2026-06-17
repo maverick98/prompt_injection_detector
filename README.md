@@ -21,6 +21,7 @@ can be enabled when you want the full research-grade version.
 ```text
 prompt_injection_detector/
   configs/default.yaml
+  docs/                   # data card, model card, report, demo script
   scripts/run_smoke_test.py
   src/prompt_injection_detector/
     data/                  # synthetic bootstrap data and IO
@@ -33,6 +34,14 @@ prompt_injection_detector/
     cli.py                 # command-line workflow
   tests/
 ```
+
+## Portfolio Documents
+
+- `docs/DATA_CARD.md`
+- `docs/MODEL_CARD.md`
+- `docs/RESEARCH_REPORT.md`
+- `docs/DEMO_SCRIPT.md`
+- `docs/COMPLETION_CHECKLIST.md`
 
 ## Setup
 
@@ -235,4 +244,3 @@ This project is for defensive research and evaluation of LLM application securit
 The included examples are synthetic and should be used to test detectors, not to
 target deployed systems. Keep any public dataset release reviewed, labeled, and
 free of secrets or proprietary prompts.
-

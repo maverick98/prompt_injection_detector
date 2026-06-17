@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.matplotlib/
 .coverage
 htmlcov/
 
@@ -21,4 +22,3 @@ reports/*.md
 .env
 .streamlit/secrets.toml
 *.log
-
