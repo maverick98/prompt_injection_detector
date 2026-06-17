@@ -1,0 +1,29 @@
+dataset:
+  min_samples: 1500
+  injection_samples: 750
+  clean_samples: 750
+  test_size: 0.15
+  val_size: 0.15
+  random_state: 42
+
+training:
+  optimize_for: recall
+  models:
+    - logistic_regression
+    - svm_rbf
+    - random_forest
+  decision_threshold: 0.45
+
+red_team:
+  variants_per_prompt: 5
+  strategies:
+    - paraphrase
+    - obfuscation
+    - roleplay_wrapping
+    - encoding
+    - nested_injection
+
+adversarial_loop:
+  iterations: 3
+  max_false_negatives_per_round: 100
+
