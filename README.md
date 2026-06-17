@@ -42,6 +42,7 @@ prompt_injection_detector/
 - `docs/RESEARCH_REPORT.md`
 - `docs/DEMO_SCRIPT.md`
 - `docs/COMPLETION_CHECKLIST.md`
+- `notebooks/colab_prompt_injection_detector.ipynb`
 
 ## Setup
 
