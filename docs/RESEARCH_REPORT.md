@@ -64,16 +64,16 @@ Current local metrics on the generated starter split:
 
 | Metric | Value |
 |---|---:|
-| Injection precision | 0.983 |
+| Injection precision | 1.000 |
 | Injection recall | 1.000 |
-| Injection F1 | 0.991 |
+| Injection F1 | 1.000 |
 | ROC-AUC | 1.000 |
-| Accuracy | 0.991 |
+| Accuracy | 1.000 |
 
 Confusion matrix:
 
 ```text
-[[110,   2],
+[[112,   0],
  [  0, 113]]
 ```
 
@@ -120,7 +120,50 @@ The implemented robustness suite checks:
 - multi-turn split attacks
 - long benign-context embeddings
 
-Current local edge-case detection rate is `1.0` across generated edge cases.
+Current local edge-case detection is `1.0` for Base64, multi-turn, and long
+benign-context tests, and `0.88` for Unicode-lookalike substitutions. The Unicode
+gap is a useful next target for character-level features or transformer
+fine-tuning.
+
+## Curated Hard Suite
+
+The project now includes a curated hard-suite benchmark with benign prompts that
+look security-adjacent and subtler injection attempts. This is the more honest
+local evaluation surface because it can reveal false positives and threshold
+tradeoffs that the synthetic starter split hides.
+
+Current hard-suite result at the selected threshold:
+
+| Metric | Value |
+|---|---:|
+| Injection precision | 0.760 |
+| Injection recall | 0.950 |
+| Injection F1 | 0.844 |
+| ROC-AUC | 0.943 |
+
+Confusion matrix:
+
+```text
+[[14,  6],
+ [ 1, 19]]
+```
+
+The threshold sweep identifies a recall-preserving hard-suite threshold near
+`0.41` with full hard-suite recall and lower precision. This is useful for
+security deployments where missed attacks are more expensive than review volume.
+
+Run:
+
+```powershell
+pid benchmark --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib --output-dir reports
+```
+
+Outputs:
+
+- `reports/hard_case_metrics.json`
+- `reports/hard_case_predictions.csv`
+- `reports/hard_case_threshold_sweep.csv`
+- `reports/local_evaluation_summary.md`
 
 ## Demo
 
@@ -152,4 +195,3 @@ streamlit run src/prompt_injection_detector/app/streamlit_app.py
 4. Upload the final dataset to HuggingFace.
 5. Record a 2-3 minute demo video.
 6. Update this report with real adversarial-loop curves from the expanded corpus.
-

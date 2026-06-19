@@ -12,10 +12,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, recall_score
+from sklearn.pipeline import FeatureUnion
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 
 from prompt_injection_detector.evaluation.metrics import evaluate_binary
+from prompt_injection_detector.evaluation.thresholds import operating_points
 from prompt_injection_detector.schema import InjectionCategory, Prediction
 
 
@@ -70,12 +72,29 @@ def make_pipeline(model_name: str) -> Pipeline:
         steps=[
             (
                 "tfidf",
-                TfidfVectorizer(
-                    ngram_range=(1, 3),
-                    min_df=1,
-                    max_df=0.95,
-                    sublinear_tf=True,
-                    strip_accents="unicode",
+                FeatureUnion(
+                    [
+                        (
+                            "word",
+                            TfidfVectorizer(
+                                ngram_range=(1, 3),
+                                min_df=1,
+                                max_df=0.95,
+                                sublinear_tf=True,
+                                strip_accents="unicode",
+                            ),
+                        ),
+                        (
+                            "char",
+                            TfidfVectorizer(
+                                analyzer="char_wb",
+                                ngram_range=(3, 5),
+                                min_df=1,
+                                max_df=0.98,
+                                sublinear_tf=True,
+                            ),
+                        ),
+                    ]
                 ),
             ),
             ("model", model),
@@ -91,20 +110,23 @@ def score_text(pipeline: Pipeline, texts: list[str] | pd.Series) -> np.ndarray:
 
 
 def find_recall_threshold(y_true: np.ndarray, scores: np.ndarray, min_precision: float = 0.55) -> float:
-    best_threshold = 0.5
-    best_recall = -1.0
-    best_f1 = -1.0
+    rows: list[tuple[float, float, float, float]] = []
     for threshold in np.linspace(0.1, 0.9, 81):
         y_pred = (scores >= threshold).astype(int)
         predicted_positive = max(y_pred.sum(), 1)
         precision = ((y_pred == 1) & (y_true == 1)).sum() / predicted_positive
         recall = recall_score(y_true, y_pred, zero_division=0)
         f1 = f1_score(y_true, y_pred, zero_division=0)
-        if precision >= min_precision and (recall > best_recall or (recall == best_recall and f1 > best_f1)):
-            best_threshold = float(threshold)
-            best_recall = float(recall)
-            best_f1 = float(f1)
-    return best_threshold
+        if precision >= min_precision:
+            rows.append((float(threshold), float(precision), float(recall), float(f1)))
+    if not rows:
+        return 0.5
+
+    best_recall = max(row[2] for row in rows)
+    recall_candidates = [row for row in rows if row[2] == best_recall]
+    best_f1 = max(row[3] for row in recall_candidates)
+    plateau = [row[0] for row in recall_candidates if row[3] == best_f1]
+    return float(np.median(plateau))
 
 
 def train_classical_models(
@@ -122,6 +144,10 @@ def train_classical_models(
         val_scores = score_text(pipeline, val["text"])
         threshold = decision_threshold or find_recall_threshold(val["label"].to_numpy(dtype=int), val_scores)
         metrics = evaluate_binary(val["label"].to_numpy(dtype=int), val_scores, threshold)
+        metrics["validation_operating_points"] = operating_points(
+            val["label"].to_numpy(dtype=int),
+            val_scores,
+        )
 
         category_pipeline = Pipeline(
             steps=[
@@ -173,7 +199,7 @@ def load_detector(path: str | Path) -> TrainedDetector:
 
 
 def explain_text(pipeline: Pipeline, text: str, top_k: int = 8) -> list[tuple[str, float]]:
-    vectorizer: TfidfVectorizer = pipeline.named_steps["tfidf"]
+    vectorizer = pipeline.named_steps["tfidf"]
     model = pipeline.named_steps["model"]
     vector = vectorizer.transform([text])
     feature_names = np.asarray(vectorizer.get_feature_names_out())

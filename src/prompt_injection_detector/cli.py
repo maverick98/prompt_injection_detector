@@ -8,6 +8,7 @@ import typer
 from rich import print
 
 from prompt_injection_detector.adversarial import run_adversarial_loop
+from prompt_injection_detector.evaluation.benchmark import evaluate_hard_cases, write_research_summary
 from prompt_injection_detector.data.io import load_frame, save_samples, stratified_split
 from prompt_injection_detector.data.synthetic import generate_synthetic_dataset
 from prompt_injection_detector.models.classical import (
@@ -41,6 +42,10 @@ def train(
     dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
     model_out: Path = typer.Option(Path("artifacts/detector.joblib")),
     metrics_out: Path = typer.Option(Path("reports/test_metrics.json")),
+    decision_threshold: float | None = typer.Option(
+        None,
+        help="Optional fixed decision threshold. If omitted, validation calibration is used.",
+    ),
 ) -> None:
     frame = load_frame(dataset)
     if "split" not in frame.columns or frame["split"].isna().any():
@@ -48,8 +53,9 @@ def train(
     train_frame = frame[frame["split"] == "train"]
     val_frame = frame[frame["split"] == "val"]
     test_frame = frame[frame["split"] == "test"]
-    detector = train_classical_models(train_frame, val_frame)
+    detector = train_classical_models(train_frame, val_frame, decision_threshold=decision_threshold)
     metrics = evaluate_detector(detector, test_frame)
+    metrics["validation_operating_points"] = detector.metrics.get("validation_operating_points", {})
     save_detector(detector, model_out)
     metrics_out.parent.mkdir(parents=True, exist_ok=True)
     metrics_out.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
@@ -113,6 +119,40 @@ def robust(
 
 
 @app.command()
+def benchmark(
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
+    output_dir: Path = typer.Option(Path("reports")),
+) -> None:
+    """Run the curated hard-suite evaluation and write a summary report."""
+
+    detector = load_detector(model_path)
+    frame = load_frame(dataset)
+    test_frame = frame[frame["split"] == "test"] if "split" in frame.columns else frame
+    test_metrics = evaluate_detector(detector, test_frame)
+    hard_metrics = evaluate_hard_cases(detector, output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "hard_case_metrics.json").write_text(
+        json.dumps(hard_metrics, indent=2),
+        encoding="utf-8",
+    )
+    report_path = write_research_summary(
+        test_metrics,
+        hard_metrics,
+        output_dir / "local_evaluation_summary.md",
+    )
+    print(f"[green]Wrote hard-suite metrics to {output_dir / 'hard_case_metrics.json'}[/green]")
+    print(f"[green]Wrote hard-suite predictions to {output_dir / 'hard_case_predictions.csv'}[/green]")
+    print(f"[green]Wrote threshold sweep to {output_dir / 'hard_case_threshold_sweep.csv'}[/green]")
+    print(f"[green]Wrote research summary to {report_path}[/green]")
+    print(
+        "Hard-suite injection recall: "
+        f"{hard_metrics['classification_report']['1']['recall']:.3f}; "
+        f"precision: {hard_metrics['classification_report']['1']['precision']:.3f}"
+    )
+
+
+@app.command()
 def export_hf_data_card(output: Path = typer.Option(Path("reports/hf_data_card.md"))) -> None:
     content = """# Prompt Injection Detector Dataset
 
@@ -146,4 +186,3 @@ production use.
 
 if __name__ == "__main__":
     app()
-

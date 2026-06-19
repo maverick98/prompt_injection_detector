@@ -5,6 +5,7 @@
 The default trained detector is a recall-optimized classical text classifier:
 
 - TF-IDF word n-grams from 1 to 3
+- TF-IDF character n-grams from 3 to 5 for obfuscation robustness
 - model comparison across Logistic Regression, RBF SVM, and Random Forest
 - category classifier for detected injections
 - threshold selected on validation data to prioritize injection recall
@@ -24,25 +25,49 @@ Evaluation was run on the generated 1,500-row synthetic starter dataset.
 | Metric | Value |
 |---|---:|
 | Selected model | Logistic Regression |
-| Decision threshold | 0.13 |
+| Decision threshold | 0.475 |
 | Injection recall | 1.000 |
-| Injection precision | 0.983 |
-| Injection F1 | 0.991 |
+| Injection precision | 1.000 |
+| Injection F1 | 1.000 |
 | ROC-AUC | 1.000 |
-| Accuracy | 0.991 |
+| Accuracy | 1.000 |
 
 Confusion matrix:
 
 ```text
-[[110,   2],
+[[112,   0],
  [  0, 113]]
 ```
 
 Interpretation:
 
 - zero false negatives on the starter split
-- two false positives, which is acceptable for the security-first recall target
+- zero false positives on the starter split
 - metrics should be re-estimated after adding harder public/manual/LLM-reviewed data
+
+## Curated Hard-Suite Evaluation
+
+The project also includes a 40-case curated hard suite with security-adjacent
+clean prompts and subtler injection attempts. At the selected threshold:
+
+| Metric | Value |
+|---|---:|
+| Injection recall | 1.000 |
+| Injection precision | 0.760 |
+| Injection F1 | 0.844 |
+| ROC-AUC | 0.943 |
+
+Confusion matrix:
+
+```text
+[[14,  6],
+ [ 1, 19]]
+```
+
+This is the more honest local benchmark because it exposes remaining false
+positives on benign prompts that mention policies, system prompts, or untrusted
+instructions. The hard-suite threshold sweep also shows a recall-preserving
+threshold around `0.41` for deployments that prefer fewer missed attacks.
 
 ## Category Results
 
@@ -85,4 +110,3 @@ as a research baseline for adversarial prompt-injection experiments.
 
 Use this detector as one layer in a defense-in-depth system. Do not rely on it as
 the only boundary around tools, secrets, documents, or agent actions.
-

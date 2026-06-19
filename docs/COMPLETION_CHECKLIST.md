@@ -17,6 +17,10 @@
 - [x] Three-iteration local loop executed
 - [x] Robustness suite implemented
 - [x] Robustness report generated locally
+- [x] Curated hard benchmark implemented
+- [x] Threshold sweep implemented
+- [x] Plateau-midpoint threshold calibration implemented
+- [x] Local evaluation summary generator implemented
 - [x] Streamlit two-panel demo implemented
 - [x] Tests added and passing
 - [x] README written
@@ -33,4 +37,3 @@
 - [ ] Run LLM-backed red-team generation with API key
 - [ ] Record 2-3 minute demo video
 - [ ] Publish GitHub remote
-

@@ -116,9 +116,15 @@ The classical trainer compares:
 - Logistic Regression
 - SVM with RBF kernel
 - Random Forest
+- TF-IDF word features plus character n-grams for obfuscation robustness
 
 Selection prioritizes recall for the injection class, then F1. This matches the
 security framing: a false negative is more dangerous than a false positive.
+You can override the threshold when experimenting:
+
+```powershell
+pid train --dataset data/processed/dataset.csv --decision-threshold 0.41
+```
 
 Metrics are written to `reports/test_metrics.json`:
 
@@ -198,7 +204,24 @@ This reports detection rates by injection category plus edge cases:
 - multi-turn split injections
 - long benign-text embeddings
 
-## 7. Streamlit Demo
+## 7. Curated Hard Benchmark
+
+The starter split is intentionally synthetic, so it can look too easy. Run the
+curated hard-suite benchmark to expose false-positive-like clean prompts, subtler
+injections, and threshold tradeoffs:
+
+```powershell
+pid benchmark --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib --output-dir reports
+```
+
+Outputs:
+
+- `reports/hard_case_metrics.json`
+- `reports/hard_case_predictions.csv`
+- `reports/hard_case_threshold_sweep.csv`
+- `reports/local_evaluation_summary.md`
+
+## 8. Streamlit Demo
 
 ```powershell
 streamlit run src/prompt_injection_detector/app/streamlit_app.py
