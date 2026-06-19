@@ -24,6 +24,8 @@
 - [x] Game-theoretic attacker/defender payoff matrix implemented
 - [x] Zero-sum minimax equilibrium solver implemented
 - [x] Streamlit two-panel demo implemented
+- [x] Streamlit Cloud deployment entrypoint added
+- [x] Streamlit Cloud requirements and theme config added
 - [x] Tests added and passing
 - [x] README written
 - [x] Data card written

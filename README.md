@@ -247,12 +247,17 @@ policy mix is robust against an adaptive attacker without ignoring false alarms.
 ## 9. Streamlit Demo
 
 ```powershell
-streamlit run src/prompt_injection_detector/app/streamlit_app.py
+streamlit run streamlit_app.py
 ```
 
-Panel 1 detects prompt injection and shows category, confidence, and feature
-signals. Panel 2 mutates a detected injection and shows which evasion strategies
-do or do not bypass the detector.
+The deployed app includes four tabs:
+
+- Detector
+- Red Team
+- Benchmarks
+- Game Theory
+
+Streamlit Cloud deployment settings are in `docs/STREAMLIT_DEPLOYMENT.md`.
 
 ## Optional Transformer Fine-Tuning
 
