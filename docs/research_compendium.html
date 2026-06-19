@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt Injection Detector - Comprehensive Research Compendium</title>
+  <style>
+    :root {
+      --ink: #132033;
+      --muted: #5d6b7c;
+      --paper: #f8fafc;
+      --panel: #ffffff;
+      --line: #dbe3ee;
+      --red: #e52b34;
+      --blue: #246bfe;
+      --cyan: #00a6c8;
+      --teal: #00a676;
+      --gold: #f59f00;
+      --violet: #7c3aed;
+      --pink: #d946ef;
+      --slate: #26364a;
+      --shadow: 0 18px 55px rgba(19, 32, 51, 0.13);
+      --soft-shadow: 0 10px 28px rgba(19, 32, 51, 0.09);
+      --radius: 8px;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, Menlo, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(36, 107, 254, 0.10), transparent 26%),
+        linear-gradient(45deg, transparent 50%, rgba(0, 166, 118, 0.10)),
+        var(--paper);
+      font-family: var(--sans);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      background-image:
+        linear-gradient(rgba(19, 32, 51, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(19, 32, 51, 0.055) 1px, transparent 1px);
+      background-size: 38px 38px;
+      mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
+    }
+
+    .shell {
+      width: min(1500px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+      gap: 28px;
+      align-items: center;
+      min-height: 460px;
+      padding: 34px 0 22px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      color: var(--red);
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(229, 43, 52, 0.45);
+      content: "";
+      animation: pulse 1.8s ease-out infinite;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 980px;
+      font-size: clamp(2.35rem, 5vw, 5.6rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 930px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.4vw, 1.22rem);
+      line-height: 1.72;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid rgba(19, 32, 51, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--slate);
+      font-size: 0.86rem;
+      font-weight: 800;
+      text-decoration: none;
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 430px;
+      perspective: 1400px;
+    }
+
+    .research-cube {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      width: 260px;
+      height: 260px;
+      transform-style: preserve-3d;
+      transform: translateX(-50%) rotateX(-18deg) rotateY(24deg);
+      animation: cubeOrbit 14s linear infinite;
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.36)),
+        linear-gradient(135deg, var(--c1), var(--c2));
+      box-shadow: 0 22px 50px rgba(19, 32, 51, 0.20);
+      color: #fff;
+      font-weight: 900;
+      text-align: center;
+      text-shadow: 0 2px 18px rgba(19, 32, 51, 0.28);
+      backface-visibility: visible;
+    }
+
+    .face span {
+      display: block;
+      max-width: 180px;
+      padding: 10px;
+      font-size: 1.08rem;
+      line-height: 1.1;
+    }
+
+    .front { --c1: rgba(229,43,52,.92); --c2: rgba(124,58,237,.82); transform: translateZ(130px); }
+    .back { --c1: rgba(36,107,254,.88); --c2: rgba(0,166,200,.82); transform: rotateY(180deg) translateZ(130px); }
+    .right { --c1: rgba(0,166,118,.88); --c2: rgba(36,107,254,.76); transform: rotateY(90deg) translateZ(130px); }
+    .left { --c1: rgba(245,159,0,.90); --c2: rgba(229,43,52,.76); transform: rotateY(-90deg) translateZ(130px); }
+    .top { --c1: rgba(124,58,237,.88); --c2: rgba(217,70,239,.78); transform: rotateX(90deg) translateZ(130px); }
+    .bottom { --c1: rgba(19,32,51,.88); --c2: rgba(36,107,254,.72); transform: rotateX(-90deg) translateZ(130px); }
+
+    .orbital {
+      position: absolute;
+      inset: 20px;
+      border: 2px solid rgba(36, 107, 254, 0.20);
+      border-radius: 50%;
+      transform: rotateX(64deg);
+      animation: ring 9s linear infinite;
+    }
+
+    .orbital:nth-child(2) {
+      inset: 48px;
+      border-color: rgba(245, 159, 0, 0.28);
+      transform: rotateY(68deg);
+      animation-duration: 12s;
+      animation-direction: reverse;
+    }
+
+    .toc {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 10px 0 28px;
+      padding: 12px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .toc a {
+      padding: 8px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .toc a:hover {
+      color: var(--ink);
+      background: rgba(36, 107, 254, 0.09);
+    }
+
+    .section {
+      position: relative;
+      margin-top: 24px;
+      padding: 28px;
+      border: 1px solid rgba(19, 32, 51, 0.11);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section::before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--red), var(--blue), var(--teal), var(--gold), var(--violet));
+      content: "";
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2.6vw, 2.5rem);
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      letter-spacing: 0;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.68;
+    }
+
+    .section-intro {
+      max-width: 980px;
+      margin: 10px 0 24px;
+      font-size: 1rem;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      position: relative;
+      min-height: 130px;
+      padding: 18px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78)),
+        linear-gradient(135deg, var(--tone), transparent 74%);
+      box-shadow: var(--soft-shadow);
+      overflow: hidden;
+    }
+
+    .card::after {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      height: 38px;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      opacity: 0.20;
+      transform: rotate(45deg);
+      content: "";
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .formula {
+      display: block;
+      margin-top: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(19, 32, 51, 0.09);
+      border-radius: var(--radius);
+      background: rgba(19, 32, 51, 0.055);
+      color: var(--ink);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+
+    .pipeline {
+      position: relative;
+      min-height: 440px;
+      margin-top: 20px;
+      padding: 20px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.48)),
+        repeating-linear-gradient(90deg, transparent 0 72px, rgba(19, 32, 51, 0.035) 73px 74px);
+      overflow: hidden;
+    }
+
+    .pipeline svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .animated-line {
+      fill: none;
+      stroke-linecap: round;
+      stroke-width: 4;
+      stroke-dasharray: 12 14;
+      animation: dash 1.8s linear infinite;
+    }
+
+    .pipeline-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 14px;
+      align-items: stretch;
+      min-height: 360px;
+    }
+
+    .stage-card {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      padding: 15px;
+      border: 1px solid rgba(19, 32, 51, 0.11);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: var(--soft-shadow);
+      transform-style: preserve-3d;
+      transition: transform 200ms ease, box-shadow 200ms ease;
+    }
+
+    .stage-card:hover {
+      transform: translateY(-6px) rotateX(2deg);
+      box-shadow: 0 24px 58px rgba(19, 32, 51, 0.16);
+    }
+
+    .badge {
+      display: inline-grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      margin-bottom: 12px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .stage-card strong {
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .stage-card span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      box-shadow: var(--soft-shadow);
+      font-size: 0.9rem;
+    }
+
+    .matrix th,
+    .matrix td {
+      padding: 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .matrix th {
+      background: var(--slate);
+      color: #fff;
+    }
+
+    .matrix td {
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.82);
+      line-height: 1.45;
+    }
+
+    .callout {
+      margin-top: 18px;
+      padding: 16px;
+      border-left: 5px solid var(--accent);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, var(--tone), rgba(255,255,255,.82));
+      box-shadow: var(--soft-shadow);
+    }
+
+    .callout strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .callout p {
+      margin: 0;
+    }
+
+    .mini-svg {
+      width: 100%;
+      height: 190px;
+      margin-top: 12px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .frontier-map {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-top: 18px;
+    }
+
+    .frontier-svg {
+      width: 100%;
+      min-height: 520px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 24% 22%, rgba(36, 107, 254, 0.14), transparent 28%),
+        radial-gradient(circle at 72% 68%, rgba(245, 159, 0, 0.16), transparent 30%),
+        #fff;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .frontier-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .frontier-item {
+      padding: 14px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .frontier-item strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .frontier-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.48;
+    }
+
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .roadmap-step {
+      min-height: 170px;
+      padding: 16px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.95), rgba(255,255,255,.76)),
+        linear-gradient(135deg, var(--tone), transparent 72%);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .roadmap-step b {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      margin-bottom: 12px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.78rem;
+    }
+
+    .roadmap-step strong {
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .roadmap-step span {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .footer {
+      margin-top: 28px;
+      padding: 22px;
+      border: 1px solid rgba(19, 32, 51, 0.10);
+      border-radius: var(--radius);
+      background: var(--slate);
+      color: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .footer p {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, 0.76);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(229, 43, 52, 0.45); }
+      80% { box-shadow: 0 0 0 18px rgba(229, 43, 52, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 43, 52, 0); }
+    }
+
+    @keyframes cubeOrbit {
+      from { transform: translateX(-50%) rotateX(-18deg) rotateY(0deg); }
+      to { transform: translateX(-50%) rotateX(-18deg) rotateY(360deg); }
+    }
+
+    @keyframes ring {
+      from { transform: rotateX(64deg) rotateZ(0deg); }
+      to { transform: rotateX(64deg) rotateZ(360deg); }
+    }
+
+    @keyframes dash {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: -52; }
+    }
+
+    @media (max-width: 1180px) {
+      .hero,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .frontier-map,
+      .roadmap,
+      .pipeline-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100vw - 24px, 1500px);
+        padding-top: 18px;
+      }
+
+      .hero,
+      .grid-2,
+      .grid-3,
+      .grid-4,
+      .frontier-map,
+      .roadmap,
+      .pipeline-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 330px;
+      }
+
+      .research-cube {
+        width: 200px;
+        height: 200px;
+      }
+
+      .front { transform: translateZ(100px); }
+      .back { transform: rotateY(180deg) translateZ(100px); }
+      .right { transform: rotateY(90deg) translateZ(100px); }
+      .left { transform: rotateY(-90deg) translateZ(100px); }
+      .top { transform: rotateX(90deg) translateZ(100px); }
+      .bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+      .section {
+        padding: 20px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Comprehensive Research Compendium</div>
+        <h1>Prompt Injection Detector: complete system, theory, and implementation story.</h1>
+        <p class="lead">
+          This document explains the full project we built: the data pipeline, classical detector,
+          red-team generator, adversarial loop, robust benchmarks, game-theoretic analysis, Streamlit
+          deployment, Colab workflow, animated architecture artifact, and the new mathematical risk
+          layer inspired by information theory, statistical physics, graph theory, optimal transport,
+          conformal prediction, sequential detection, and control theory.
+        </p>
+        <div class="hero-actions">
+          <a class="pill" href="#architecture">Architecture</a>
+          <a class="pill" href="#detector">Detector</a>
+          <a class="pill" href="#adversarial">Adversarial Research</a>
+          <a class="pill" href="#math">Math And Physics</a>
+          <a class="pill" href="#frontier">Frontier Ideas</a>
+          <a class="pill" href="#interfaces">Streamlit Demo</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="orbital"></div>
+        <div class="orbital"></div>
+        <div class="research-cube">
+          <div class="face front"><span>Detector</span></div>
+          <div class="face back"><span>Risk Physics</span></div>
+          <div class="face right"><span>Benchmarks</span></div>
+          <div class="face left"><span>Red Team</span></div>
+          <div class="face top"><span>Game Theory</span></div>
+          <div class="face bottom"><span>Control</span></div>
+        </div>
+      </div>
+    </section>
+
+    <nav class="toc" aria-label="Document sections">
+      <a href="#executive">Executive Summary</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#data">Data</a>
+      <a href="#detector">Detector</a>
+      <a href="#adversarial">Red Team</a>
+      <a href="#benchmarks">Benchmarks</a>
+      <a href="#game">Game Theory</a>
+      <a href="#math">Math/Physics</a>
+      <a href="#frontier">Frontier Map</a>
+      <a href="#interfaces">Interfaces</a>
+      <a href="#deployment">Deployment</a>
+      <a href="#takeaways">Takeaways</a>
+    </nav>
+
+    <section class="section" id="executive">
+      <h2>Executive Summary</h2>
+      <p class="section-intro">
+        The project is a defensive research platform for detecting prompt-injection attacks against
+        LLM applications. It is intentionally not just a binary classifier. It combines model-based
+        detection, red-team attack generation, adversarial retraining, hard-case evaluation, minimax
+        attacker/defender analysis, and an interpretable mathematical risk layer that explains why
+        a prompt may be dangerous.
+      </p>
+      <div class="grid-4">
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Security Goal</h3>
+          <p>Reduce false negatives on prompt-injection attempts while preserving enough precision for usable guardrails.</p>
+        </article>
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Research Goal</h3>
+          <p>Show that detectors and attackers should co-evolve rather than treating prompt injection as a static dataset problem.</p>
+        </article>
+        <article class="card" style="--accent: var(--gold); --tone: rgba(245,159,0,.15);">
+          <h3>Explainability Goal</h3>
+          <p>Give interpretable scores: leakage pressure, risk energy, uncertainty, graph paths, and recommended control action.</p>
+        </article>
+        <article class="card" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);">
+          <h3>Delivery Goal</h3>
+          <p>Provide CLI workflows, reports, a Colab notebook, Streamlit Cloud app, and visual documentation.</p>
+        </article>
+      </div>
+      <div class="callout" style="--accent: var(--blue); --tone: rgba(36,107,254,.10);">
+        <strong>Core thesis</strong>
+        <p>
+          Prompt injection is adversarial behavior, so a strong solution should evaluate both the
+          current detector and the adaptive attacker. The best product posture is not just
+          classification; it is classification plus calibrated risk, uncertainty, and control.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="architecture">
+      <h2>System Architecture</h2>
+      <p class="section-intro">
+        The architecture is built as a pipeline with feedback loops. Inputs become features and
+        risk signals. The detector produces a probability and category. The research layer produces
+        mathematical explanations. Red-team components mutate attacks to expose blind spots.
+        Evaluation modules generate hard-suite metrics and game-theoretic equilibrium reports.
+      </p>
+      <div class="pipeline">
+        <svg viewBox="0 0 1400 460" preserveAspectRatio="none" aria-hidden="true">
+          <path class="animated-line" d="M 70 160 C 250 70, 370 260, 540 160 S 820 60, 1040 160 S 1220 250, 1330 160" stroke="rgba(36,107,254,.38)"></path>
+          <path class="animated-line" d="M 90 320 C 250 405, 420 230, 590 315 S 880 410, 1050 310 S 1240 210, 1330 330" stroke="rgba(229,43,52,.36)"></path>
+          <path class="animated-line" d="M 100 245 C 320 245, 470 245, 690 245 S 1040 245, 1320 245" stroke="rgba(0,166,118,.34)"></path>
+        </svg>
+        <div class="pipeline-grid">
+          <article class="stage-card" style="--accent: var(--cyan);"><span class="badge">1</span><strong>Input Surface</strong><span>User prompts, retrieved documents, multi-turn messages, agent instructions, and tool requests.</span></article>
+          <article class="stage-card" style="--accent: var(--blue);"><span class="badge">2</span><strong>Data Layer</strong><span>Synthetic bootstrap data, curated hard cases, labeled categories, train/validation/test split.</span></article>
+          <article class="stage-card" style="--accent: var(--red);"><span class="badge">3</span><strong>Detector</strong><span>TF-IDF word and character features with recall-focused model/threshold selection.</span></article>
+          <article class="stage-card" style="--accent: var(--gold);"><span class="badge">4</span><strong>Research Signals</strong><span>Information leakage, risk energy, phase banding, uncertainty, graph risk, transport, control.</span></article>
+          <article class="stage-card" style="--accent: var(--violet);"><span class="badge">5</span><strong>Adaptive Attack</strong><span>Rule-based red team, evasion scoring, adversarial loop, game-theoretic analysis.</span></article>
+          <article class="stage-card" style="--accent: var(--teal);"><span class="badge">6</span><strong>Outputs</strong><span>CLI, Streamlit app, Colab notebook, reports, model/data cards, animated documentation.</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="data">
+      <h2>Data And Labeling</h2>
+      <p class="section-intro">
+        The project starts from a reproducible synthetic dataset because prompt-injection data is
+        sensitive, fast-changing, and difficult to collect safely. The dataset is augmented by a
+        curated hard suite that stresses realistic false positives and subtle attacks.
+      </p>
+      <div class="grid-3">
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Labels</h3>
+          <p><strong>label=1</strong> means prompt injection. <strong>label=0</strong> means clean user or business input.</p>
+        </article>
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Attack Categories</h3>
+          <p>Role override, instruction smuggling, data extraction, jailbreak, and indirect injection.</p>
+        </article>
+        <article class="card" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);">
+          <h3>Clean Coverage</h3>
+          <p>Business requests, security education, support summaries, operational tasks, and benign technical prompts.</p>
+        </article>
+      </div>
+      <table class="matrix">
+        <thead><tr><th>Dataset Component</th><th>Purpose</th><th>Why It Matters</th></tr></thead>
+        <tbody>
+          <tr><td>Synthetic generator</td><td>Creates balanced starter examples across clean and attack classes.</td><td>Gives reproducible experiments without relying on proprietary prompts.</td></tr>
+          <tr><td>Hard-case suite</td><td>Tests subtle attacks and clean security-adjacent prompts.</td><td>Prevents overclaiming based on easy synthetic split metrics.</td></tr>
+          <tr><td>Adversarial variants</td><td>Mutates known attacks with obfuscation and role wrapping.</td><td>Measures whether the detector is robust to adaptive attackers.</td></tr>
+          <tr><td>Reports and cards</td><td>Document intended use, limits, categories, and evaluation results.</td><td>Makes the project portfolio-ready and responsible.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section" id="detector">
+      <h2>Classical Detector</h2>
+      <p class="section-intro">
+        The default detector is deliberately lightweight, local, and reproducible. It uses TF-IDF
+        features over both words and character n-grams. Character n-grams help detect obfuscation,
+        spacing tricks, encodings, and misspellings often used in prompt-injection attacks.
+      </p>
+      <div class="grid-3">
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Feature Union</h3>
+          <p>Word n-grams capture instruction semantics. Character n-grams capture obfuscation and partial attack strings.</p>
+          <code class="formula">features = TFIDF_word(1..3) + TFIDF_char(3..5)</code>
+        </article>
+        <article class="card" style="--accent: var(--violet); --tone: rgba(124,58,237,.12);">
+          <h3>Model Selection</h3>
+          <p>Logistic regression, calibrated SVM, and random forest are compared. The chosen model prioritizes recall then F1.</p>
+          <code class="formula">argmax_model (recall_injection, F1_injection)</code>
+        </article>
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Threshold Calibration</h3>
+          <p>The threshold is tuned for security posture: false negatives are more dangerous than false positives.</p>
+          <code class="formula">detect if score >= threshold</code>
+        </article>
+      </div>
+      <div class="callout" style="--accent: var(--red); --tone: rgba(229,43,52,.10);">
+        <strong>Security interpretation</strong>
+        <p>
+          In prompt-injection defense, recall is not an ordinary metric. A missed attack can expose
+          secrets, tools, or hidden instructions. Precision still matters, but recall-first calibration
+          is the safer initial operating mode for high-risk LLM applications.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="adversarial">
+      <h2>Red Team And Adversarial Loop</h2>
+      <p class="section-intro">
+        The red-team module turns seed attacks into evasion variants, then scores each variant with
+        the detector. The adversarial loop uses missed attacks to retrain and re-evaluate the detector,
+        creating an attack-defend-evolve cycle.
+      </p>
+      <div class="grid-3">
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Paraphrase</h3>
+          <p>Rewords the attack while preserving adversarial intent.</p>
+        </article>
+        <article class="card" style="--accent: var(--gold); --tone: rgba(245,159,0,.15);">
+          <h3>Obfuscation</h3>
+          <p>Uses spacing, substitutions, and Unicode-like tricks to avoid simple keyword matching.</p>
+        </article>
+        <article class="card" style="--accent: var(--violet); --tone: rgba(124,58,237,.12);">
+          <h3>Role Wrapping</h3>
+          <p>Frames the attack as role-play, debugging, policy update, or administrative override.</p>
+        </article>
+        <article class="card" style="--accent: var(--cyan); --tone: rgba(0,166,200,.12);">
+          <h3>Encoding</h3>
+          <p>Hides instructions in base64-like or encoded-looking forms.</p>
+        </article>
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Nested Injection</h3>
+          <p>Places adversarial instructions inside quoted text, documents, or simulated retrieved content.</p>
+        </article>
+        <article class="card" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);">
+          <h3>Retraining</h3>
+          <p>Adds successful evasions back into training data and repeats evaluation.</p>
+        </article>
+      </div>
+      <code class="formula">for each round: train -> find misses -> generate evasions -> add successful variants -> retrain</code>
+    </section>
+
+    <section class="section" id="benchmarks">
+      <h2>Benchmarking And Robustness</h2>
+      <p class="section-intro">
+        The project includes several evaluation surfaces because one number is not enough for an
+        adversarial security task. We evaluate ordinary held-out metrics, curated hard cases,
+        threshold sweeps, and category-specific robustness.
+      </p>
+      <table class="matrix">
+        <thead><tr><th>Evaluation</th><th>Measures</th><th>Output Artifact</th></tr></thead>
+        <tbody>
+          <tr><td>Starter split</td><td>Precision, recall, F1, ROC-AUC, confusion matrix, category rates.</td><td><code>reports/test_metrics.json</code></td></tr>
+          <tr><td>Hard benchmark</td><td>Performance on subtle attacks and clean security-adjacent prompts.</td><td><code>hard_case_metrics.json</code>, predictions, sweep CSV.</td></tr>
+          <tr><td>Robustness suite</td><td>Base64, Unicode lookalikes, multi-turn split injections, benign embeddings.</td><td><code>robustness_report.json</code></td></tr>
+          <tr><td>Adversarial loop</td><td>Attack success rate and variant bypass behavior across rounds.</td><td><code>adversarial_history.csv</code>, <code>evasion_variants.csv</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section" id="game">
+      <h2>Game-Theoretic Attacker/Defender Analysis</h2>
+      <p class="section-intro">
+        Prompt injection is strategic: attackers choose evasion strategies, defenders choose detection
+        thresholds and guardrail policies. We model this as a finite zero-sum game where the defender
+        minimizes worst-case loss.
+      </p>
+      <div class="grid-2">
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Attacker Actions</h3>
+          <p>Paraphrasing, obfuscation, role-play, encoding, nested injection, and other red-team variants.</p>
+        </article>
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Defender Actions</h3>
+          <p>Threshold policies that trade bypass prevention against false-positive burden.</p>
+        </article>
+      </div>
+      <code class="formula">defender_loss = bypass_rate + false_positive_weight * false_positive_rate</code>
+      <code class="formula">min_defender max_attacker loss(strategy, threshold)</code>
+      <div class="callout" style="--accent: var(--violet); --tone: rgba(124,58,237,.10);">
+        <strong>Why this is useful</strong>
+        <p>
+          Game theory prevents a detector from optimizing only against yesterday's attack. It asks:
+          if the attacker adapts, which defense policy still performs well?
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="math">
+      <h2>Mathematics, Physics, And Information Theory</h2>
+      <p class="section-intro">
+        The new research layer is designed as interpretable analysis beside the classifier. It does
+        not pretend that physics magically solves prompt injection. Instead, it uses rigorous ideas
+        as useful analogies and scoring tools for risk, uncertainty, and control.
+      </p>
+
+      <div class="grid-2">
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>1. Information Theory</h3>
+          <p>
+            We estimate whether a prompt is attempting to extract hidden state. Signals include
+            secret-related words, hidden-context references, entropy, and compression pressure.
+          </p>
+          <code class="formula">H(X) = - sum p(x) log2 p(x)</code>
+          <code class="formula">leakage_score = f(secret_terms, hidden_state_terms, entropy)</code>
+        </article>
+
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>2. Statistical Physics / Energy Risk</h3>
+          <p>
+            Each prompt is mapped to a risk-energy landscape. Higher energy means stronger pressure
+            toward unsafe behavior: override, exfiltration, tool abuse, obfuscation, or authority hijack.
+          </p>
+          <code class="formula">E(prompt) = w1*override + w2*exfiltration + ... + wk*leakage</code>
+          <code class="formula">free_energy = -log(1 - E)</code>
+        </article>
+
+        <article class="card" style="--accent: var(--gold); --tone: rgba(245,159,0,.15);">
+          <h3>3. Phase Transition Bands</h3>
+          <p>
+            Risk changes are treated like operating regions. Low-risk prompts pass normally, critical
+            prompts are reviewed, and high-risk prompts are blocked or quarantined.
+          </p>
+          <code class="formula">E < 0.35: allow | 0.35 <= E < 0.62: review | E >= 0.62: block</code>
+        </article>
+
+        <article class="card" style="--accent: var(--violet); --tone: rgba(124,58,237,.12);">
+          <h3>4. Conformal-Style Uncertainty</h3>
+          <p>
+            When the classifier score or energy score sits near a boundary, the system marks the
+            prediction set as ambiguous instead of pretending to be overconfident.
+          </p>
+          <code class="formula">prediction_set = {clean, injection} near decision boundary</code>
+        </article>
+
+        <article class="card" style="--accent: var(--cyan); --tone: rgba(0,166,200,.12);">
+          <h3>5. Sequential Detection</h3>
+          <p>
+            Multi-turn attacks may distribute risk over several harmless-looking messages. A CUSUM-like
+            statistic accumulates risk energy across turns.
+          </p>
+          <code class="formula">S_t = max(0, alpha*S_(t-1) + E_t - baseline)</code>
+        </article>
+
+        <article class="card" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);">
+          <h3>6. Graph Theory</h3>
+          <p>
+            RAG and agent attacks can be viewed as dangerous paths: untrusted content influences
+            instructions, instructions cross a policy boundary, hidden context flows to a tool or sink.
+          </p>
+          <code class="formula">untrusted_content -> instruction_override -> hidden_context -> external_sink</code>
+        </article>
+
+        <article class="card" style="--accent: var(--pink); --tone: rgba(217,70,239,.12);">
+          <h3>7. Optimal Transport Intuition</h3>
+          <p>
+            The risk vector is compared to prototype clean and attack distributions. If it is closer
+            to the attack prototype, its attack affinity rises.
+          </p>
+          <code class="formula">attack_affinity = d(clean) / (d(clean) + d(attack))</code>
+        </article>
+
+        <article class="card" style="--accent: var(--slate); --tone: rgba(19,32,51,.10);">
+          <h3>8. Control Theory</h3>
+          <p>
+            The detector acts like a controller that keeps an LLM application inside a safe operating
+            region. Actions are allow, review, quarantine, and block.
+          </p>
+          <code class="formula">control_signal = max(E, graph_risk, uncertainty_pressure)</code>
+        </article>
+      </div>
+
+      <svg class="mini-svg" viewBox="0 0 1000 220" role="img" aria-label="Risk energy landscape diagram">
+        <defs>
+          <linearGradient id="landscape" x1="0%" x2="100%">
+            <stop offset="0%" stop-color="#00a676" stop-opacity="0.85"/>
+            <stop offset="48%" stop-color="#f59f00" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#e52b34" stop-opacity="0.85"/>
+          </linearGradient>
+        </defs>
+        <rect x="30" y="38" width="940" height="72" rx="8" fill="url(#landscape)"/>
+        <line x1="360" y1="30" x2="360" y2="138" stroke="#132033" stroke-width="3" stroke-dasharray="8 8"/>
+        <line x1="650" y1="30" x2="650" y2="138" stroke="#132033" stroke-width="3" stroke-dasharray="8 8"/>
+        <text x="140" y="82" fill="#fff" font-size="26" font-weight="800">Allow</text>
+        <text x="445" y="82" fill="#fff" font-size="26" font-weight="800">Review</text>
+        <text x="760" y="82" fill="#fff" font-size="26" font-weight="800">Block</text>
+        <text x="40" y="165" fill="#5d6b7c" font-size="18">Low risk energy</text>
+        <text x="452" y="165" fill="#5d6b7c" font-size="18">Critical transition band</text>
+        <text x="790" y="165" fill="#5d6b7c" font-size="18">High risk energy</text>
+      </svg>
+    </section>
+
+    <section class="section" id="frontier">
+      <h2>Frontier Research Map: Mathematics And Physics Under One Roof</h2>
+      <p class="section-intro">
+        A world-class prompt-injection detector should be understood as an adversarial decision
+        system under uncertainty. That invites a broader mathematical toolkit: Bayesian inference
+        for belief updates, robust optimization for worst-case attacks, information geometry for
+        distribution shift, dynamical systems for multi-turn behavior, spectral graph theory for
+        RAG/tool pathways, and statistical mechanics for phase-like risk transitions. The table
+        below separates what is implemented now from high-value next extensions.
+      </p>
+
+      <div class="frontier-map">
+        <svg class="frontier-svg" viewBox="0 0 900 620" role="img" aria-label="Advanced theory map">
+          <defs>
+            <filter id="softGlow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="900" height="620" fill="transparent"/>
+          <circle cx="450" cy="305" r="92" fill="#26364a" filter="url(#softGlow)"/>
+          <text x="450" y="286" text-anchor="middle" fill="#fff" font-size="24" font-weight="900">Prompt</text>
+          <text x="450" y="314" text-anchor="middle" fill="#fff" font-size="24" font-weight="900">Injection</text>
+          <text x="450" y="344" text-anchor="middle" fill="#fff" font-size="18">Defense Core</text>
+
+          <g stroke-width="4" stroke-linecap="round" stroke-dasharray="10 12">
+            <path class="animated-line" d="M 450 305 C 330 190, 260 130, 150 95" stroke="rgba(36,107,254,.45)"/>
+            <path class="animated-line" d="M 450 305 C 570 185, 640 132, 750 95" stroke="rgba(229,43,52,.43)"/>
+            <path class="animated-line" d="M 450 305 C 280 320, 230 420, 140 520" stroke="rgba(0,166,118,.43)"/>
+            <path class="animated-line" d="M 450 305 C 620 320, 670 430, 760 520" stroke="rgba(245,159,0,.46)"/>
+            <path class="animated-line" d="M 450 305 C 450 170, 450 115, 450 56" stroke="rgba(124,58,237,.42)"/>
+            <path class="animated-line" d="M 450 305 C 450 435, 450 505, 450 575" stroke="rgba(217,70,239,.42)"/>
+          </g>
+
+          <g font-weight="900" font-size="18" text-anchor="middle">
+            <circle cx="150" cy="95" r="62" fill="#246bfe"/>
+            <text x="150" y="87" fill="#fff">Bayesian</text>
+            <text x="150" y="111" fill="#fff">Risk</text>
+
+            <circle cx="750" cy="95" r="62" fill="#e52b34"/>
+            <text x="750" y="86" fill="#fff">Robust</text>
+            <text x="750" y="110" fill="#fff">Minimax</text>
+
+            <circle cx="140" cy="520" r="62" fill="#00a676"/>
+            <text x="140" y="512" fill="#fff">Graph</text>
+            <text x="140" y="536" fill="#fff">Spectra</text>
+
+            <circle cx="760" cy="520" r="62" fill="#f59f00"/>
+            <text x="760" y="512" fill="#fff">Statistical</text>
+            <text x="760" y="536" fill="#fff">Mechanics</text>
+
+            <circle cx="450" cy="56" r="54" fill="#7c3aed"/>
+            <text x="450" y="50" fill="#fff">Info</text>
+            <text x="450" y="72" fill="#fff">Geometry</text>
+
+            <circle cx="450" cy="575" r="54" fill="#d946ef"/>
+            <text x="450" y="568" fill="#fff">Control</text>
+            <text x="450" y="590" fill="#fff">Systems</text>
+          </g>
+        </svg>
+
+        <div class="frontier-list">
+          <div class="frontier-item"><strong>Already implemented</strong><span>Risk energy, phase bands, information leakage, conformal-style ambiguity, CUSUM-style sequential risk, graph paths, prototype transport affinity, and control actions.</span></div>
+          <div class="frontier-item"><strong>Near-term upgrade</strong><span>Add Bayesian posterior risk, evidence accumulation, martingale alarms, robust threshold optimization, and spectral graph scores for RAG/tool chains.</span></div>
+          <div class="frontier-item"><strong>Research-grade upgrade</strong><span>Train with adversarial risk minimization, conformal calibration sets, PAC-Bayes bounds, information bottleneck objectives, and distributionally robust optimization.</span></div>
+          <div class="frontier-item"><strong>Production-grade upgrade</strong><span>Make the detector a closed-loop controller with telemetry, drift detection, calibrated uncertainty, and policy-specific guardrail actions.</span></div>
+        </div>
+      </div>
+
+      <table class="matrix">
+        <thead><tr><th>Theory</th><th>Core Idea</th><th>How It Applies Here</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Bayesian decision theory</td><td>Choose actions by minimizing expected posterior loss.</td><td>Convert detector score, risk energy, and graph risk into posterior attack probability and action-specific loss.</td><td>High-value next step</td></tr>
+          <tr><td>PAC-Bayes</td><td>Bound generalization risk using a prior/posterior over predictors.</td><td>Report uncertainty about detector robustness under shifted adversarial prompt distributions.</td><td>Research extension</td></tr>
+          <tr><td>Distributionally robust optimization</td><td>Minimize worst-case loss over a ball around the training distribution.</td><td>Train thresholds and classifiers against obfuscated, paraphrased, and nested-injection neighborhoods.</td><td>Research extension</td></tr>
+          <tr><td>Adversarial risk minimization</td><td>Optimize against perturbed samples rather than clean samples only.</td><td>Formalizes the adversarial loop as min over detector, max over red-team transformations.</td><td>Partially implemented</td></tr>
+          <tr><td>Information bottleneck</td><td>Keep task-relevant information while discarding nuisance information.</td><td>Learn features that preserve attack intent while ignoring superficial wording.</td><td>Future model upgrade</td></tr>
+          <tr><td>Minimum description length</td><td>Prefer explanations that compress the data well.</td><td>Flag prompts whose shortest explanation is adversarial intent rather than benign task completion.</td><td>Future scoring layer</td></tr>
+          <tr><td>Information geometry</td><td>Study probability distributions as curved manifolds.</td><td>Track distribution shift between clean prompts, known attacks, and new red-team variants.</td><td>Future diagnostics</td></tr>
+          <tr><td>Optimal transport</td><td>Measure cost to move one distribution into another.</td><td>Estimate semantic/risk distance from clean distribution to attack distribution.</td><td>Prototype implemented</td></tr>
+          <tr><td>Spectral graph theory</td><td>Use eigenstructure to understand connectivity and flow.</td><td>Score RAG/tool graphs by how easily untrusted content reaches privileged context or tools.</td><td>Future graph module</td></tr>
+          <tr><td>Percolation theory</td><td>Study when local connections create global propagation.</td><td>Model when small prompt instructions cascade into full policy compromise across tools and memory.</td><td>Future graph module</td></tr>
+          <tr><td>Markov decision processes</td><td>Sequential decision-making under uncertainty.</td><td>Model agent defense as state, action, transition, reward: allow, review, quarantine, block.</td><td>Future controller</td></tr>
+          <tr><td>Martingales and sequential tests</td><td>Detect statistically significant deviations over time.</td><td>Upgrade CUSUM into formal anytime-valid alarms for multi-turn attacks.</td><td>Near-term upgrade</td></tr>
+          <tr><td>Lyapunov stability</td><td>Show a dynamical system returns to a safe region after disturbances.</td><td>Define a safety potential that must decrease after guardrail intervention.</td><td>Future controller</td></tr>
+          <tr><td>Kalman and particle filtering</td><td>Estimate hidden state from noisy observations.</td><td>Track latent attack intent across conversation turns and tool calls.</td><td>Future sequential module</td></tr>
+          <tr><td>Statistical mechanics</td><td>Analyze macroscopic behavior from many interacting signals.</td><td>Risk energy and phase bands summarize many weak attack indicators into an operating regime.</td><td>Implemented</td></tr>
+          <tr><td>Renormalization intuition</td><td>Study behavior across scales.</td><td>Aggregate token-level, sentence-level, turn-level, and session-level risks consistently.</td><td>Future multi-scale module</td></tr>
+          <tr><td>Causal inference</td><td>Separate correlation from causal influence.</td><td>Distinguish prompts that merely mention security from prompts that cause unsafe tool or context flow.</td><td>Future evaluation module</td></tr>
+          <tr><td>Differential privacy</td><td>Bound information leakage about hidden data.</td><td>Quantify whether a response policy protects secrets even under extraction attempts.</td><td>Future policy audit</td></tr>
+          <tr><td>Formal methods</td><td>Specify invariants and verify safety properties.</td><td>Express hard rules: untrusted content must not alter system policy or access secret-bearing tools.</td><td>Future agent guardrail</td></tr>
+        </tbody>
+      </table>
+
+      <div class="roadmap">
+        <div class="roadmap-step" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);"><b>1</b><strong>Calibrate</strong><span>Use a held-out conformal calibration set to produce honest prediction sets and action confidence.</span></div>
+        <div class="roadmap-step" style="--accent: var(--red); --tone: rgba(229,43,52,.12);"><b>2</b><strong>Robustify</strong><span>Train with adversarial variants and distributional uncertainty sets rather than clean samples only.</span></div>
+        <div class="roadmap-step" style="--accent: var(--gold); --tone: rgba(245,159,0,.15);"><b>3</b><strong>Stabilize</strong><span>Define Lyapunov-style safety potential and require interventions to reduce session-level risk.</span></div>
+        <div class="roadmap-step" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);"><b>4</b><strong>Verify</strong><span>Add formal policy invariants for RAG and tool use, then test them with red-team graph scenarios.</span></div>
+      </div>
+
+      <div class="callout" style="--accent: var(--gold); --tone: rgba(245,159,0,.13);">
+        <strong>Fields Medalist / Turing Award lens</strong>
+        <p>
+          The deepest framing is not "build a classifier." It is "build a controlled, adversarial,
+          partially observed dynamical system that preserves safety invariants under distribution
+          shift." The current project now has the skeleton of that system: detector, attacker,
+          evaluator, game solver, uncertainty layer, and control recommendation.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="interfaces">
+      <h2>Interfaces And Artifacts</h2>
+      <p class="section-intro">
+        The project was made usable in several forms: local CLI, Streamlit app, Colab notebook,
+        reports, cards, and visual documentation.
+      </p>
+      <div class="grid-3">
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>CLI</h3>
+          <p>Commands include build-dataset, train, predict, redteam, loop, robust, benchmark, game, physics, and export-hf-data-card.</p>
+          <code class="formula">pid physics "Ignore previous instructions..."</code>
+        </article>
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Streamlit</h3>
+          <p>Five tabs: Detector, Red Team, Benchmarks, Game Theory, Research Signals.</p>
+          <code class="formula">streamlit run streamlit_app.py</code>
+        </article>
+        <article class="card" style="--accent: var(--teal); --tone: rgba(0,166,118,.12);">
+          <h3>Colab Notebook</h3>
+          <p>Portable experiment workflow for cloud execution, quick demos, and reproducibility.</p>
+        </article>
+        <article class="card" style="--accent: var(--gold); --tone: rgba(245,159,0,.15);">
+          <h3>Reports</h3>
+          <p>Hard benchmark, local evaluation summary, game equilibrium, sensitivity, and robustness outputs.</p>
+        </article>
+        <article class="card" style="--accent: var(--violet); --tone: rgba(124,58,237,.12);">
+          <h3>Cards</h3>
+          <p>Dataset card, model card, demo script, research report, completion checklist.</p>
+        </article>
+        <article class="card" style="--accent: var(--pink); --tone: rgba(217,70,239,.12);">
+          <h3>Visual Docs</h3>
+          <p>Animated architecture diagram and this comprehensive research compendium.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="deployment">
+      <h2>GitHub And Streamlit Deployment</h2>
+      <p class="section-intro">
+        The project is deployed through Streamlit Cloud from GitHub. The root entrypoint is
+        <code>streamlit_app.py</code>, which inserts <code>src</code> into the Python path and launches
+        the real application module.
+      </p>
+      <table class="matrix">
+        <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Repository</td><td><code>maverick98/prompt_injection_detector</code></td></tr>
+          <tr><td>Branch</td><td><code>master</code></td></tr>
+          <tr><td>Main file path</td><td><code>streamlit_app.py</code></td></tr>
+          <tr><td>Dependency file</td><td><code>requirements.txt</code></td></tr>
+          <tr><td>Theme/config</td><td><code>.streamlit/config.toml</code></td></tr>
+        </tbody>
+      </table>
+      <code class="formula">local edit -> git commit -> git push -> GitHub master -> Streamlit redeploy</code>
+    </section>
+
+    <section class="section" id="takeaways">
+      <h2>What This Project Demonstrates</h2>
+      <p class="section-intro">
+        The final result is more than a toy detector. It is a compact research platform for LLM
+        application security, with a clear path from data generation through deployment and analysis.
+      </p>
+      <div class="grid-2">
+        <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
+          <h3>Technical Strength</h3>
+          <ul>
+            <li>Reproducible training and evaluation pipeline.</li>
+            <li>Red-team attack generation and adversarial retraining.</li>
+            <li>Hard-case benchmark and threshold analysis.</li>
+            <li>Game-theoretic minimax analysis.</li>
+            <li>Interpretable mathematical risk layer.</li>
+          </ul>
+        </article>
+        <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
+          <h3>Research Maturity</h3>
+          <ul>
+            <li>Security-first metric framing: recall before F1 polish.</li>
+            <li>Clear distinction between synthetic baseline and hard-suite reality.</li>
+            <li>Adaptive attacker model rather than static evaluation only.</li>
+            <li>Operational control actions instead of only scores.</li>
+            <li>Transparent documentation and deployment readiness.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="footer">
+        <strong>Final narrative</strong>
+        <p>
+          A strong prompt-injection defense should detect malicious prompts, explain why they are
+          risky, anticipate adaptive attackers, quantify uncertainty, and choose an appropriate
+          control action. This project implements that full story end to end.
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -12,7 +12,9 @@ research pipeline described in `Prompt_Injection_Detector.docx`:
 - structured robustness testing
 - game-theoretic attacker/defender equilibrium analysis
 - mathematical risk layer using information theory, statistical physics,
-  conformal uncertainty, graph risk, optimal transport, and control theory
+  conformal uncertainty, graph risk, optimal transport, control theory,
+  Bayesian decision theory, robust optimization, spectral graph theory,
+  causal inference, formal methods, and sequential stochastic processes
 - Streamlit demo
 
 The default path is intentionally local and reproducible. It trains a strong
@@ -47,6 +49,7 @@ prompt_injection_detector/
 - `docs/DEMO_SCRIPT.md`
 - `docs/COMPLETION_CHECKLIST.md`
 - `docs/architecture_diagram.html`
+- `docs/research_compendium.html`
 - `notebooks/colab_prompt_injection_detector.ipynb`
 
 ## Setup
