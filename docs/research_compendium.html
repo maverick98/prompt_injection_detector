@@ -1097,35 +1097,35 @@
         </svg>
 
         <div class="frontier-list">
-          <div class="frontier-item"><strong>Already implemented</strong><span>Risk energy, phase bands, information leakage, conformal-style ambiguity, CUSUM-style sequential risk, graph paths, prototype transport affinity, and control actions.</span></div>
-          <div class="frontier-item"><strong>Near-term upgrade</strong><span>Add Bayesian posterior risk, evidence accumulation, martingale alarms, robust threshold optimization, and spectral graph scores for RAG/tool chains.</span></div>
-          <div class="frontier-item"><strong>Research-grade upgrade</strong><span>Train with adversarial risk minimization, conformal calibration sets, PAC-Bayes bounds, information bottleneck objectives, and distributionally robust optimization.</span></div>
-          <div class="frontier-item"><strong>Production-grade upgrade</strong><span>Make the detector a closed-loop controller with telemetry, drift detection, calibrated uncertainty, and policy-specific guardrail actions.</span></div>
+          <div class="frontier-item"><strong>Implemented practical analyzers</strong><span>Risk energy, phase bands, leakage, conformal-style ambiguity, CUSUM, graph paths, transport affinity, Bayesian decisions, robust thresholds, spectral graph/percolation, martingales, Lyapunov checks, filtering, causal/privacy audit, and formal invariants.</span></div>
+          <div class="frontier-item"><strong>Dataset-level implementation</strong><span>PAC-Bayes-style bound, empirical error, score separation, drift proxy, and distributionally robust threshold sweep are executable through the CLI and Streamlit diagnostics.</span></div>
+          <div class="frontier-item"><strong>Research-grade next step</strong><span>Replace heuristic proxies with calibrated datasets, certified bounds, learned information bottleneck objectives, formal policy specifications, and external benchmark suites.</span></div>
+          <div class="frontier-item"><strong>Production-grade next step</strong><span>Connect the controller to real application telemetry, tool permissions, incident logging, policy review workflows, and continuous drift monitoring.</span></div>
         </div>
       </div>
 
       <table class="matrix">
         <thead><tr><th>Theory</th><th>Core Idea</th><th>How It Applies Here</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>Bayesian decision theory</td><td>Choose actions by minimizing expected posterior loss.</td><td>Convert detector score, risk energy, and graph risk into posterior attack probability and action-specific loss.</td><td>High-value next step</td></tr>
-          <tr><td>PAC-Bayes</td><td>Bound generalization risk using a prior/posterior over predictors.</td><td>Report uncertainty about detector robustness under shifted adversarial prompt distributions.</td><td>Research extension</td></tr>
-          <tr><td>Distributionally robust optimization</td><td>Minimize worst-case loss over a ball around the training distribution.</td><td>Train thresholds and classifiers against obfuscated, paraphrased, and nested-injection neighborhoods.</td><td>Research extension</td></tr>
-          <tr><td>Adversarial risk minimization</td><td>Optimize against perturbed samples rather than clean samples only.</td><td>Formalizes the adversarial loop as min over detector, max over red-team transformations.</td><td>Partially implemented</td></tr>
-          <tr><td>Information bottleneck</td><td>Keep task-relevant information while discarding nuisance information.</td><td>Learn features that preserve attack intent while ignoring superficial wording.</td><td>Future model upgrade</td></tr>
-          <tr><td>Minimum description length</td><td>Prefer explanations that compress the data well.</td><td>Flag prompts whose shortest explanation is adversarial intent rather than benign task completion.</td><td>Future scoring layer</td></tr>
-          <tr><td>Information geometry</td><td>Study probability distributions as curved manifolds.</td><td>Track distribution shift between clean prompts, known attacks, and new red-team variants.</td><td>Future diagnostics</td></tr>
-          <tr><td>Optimal transport</td><td>Measure cost to move one distribution into another.</td><td>Estimate semantic/risk distance from clean distribution to attack distribution.</td><td>Prototype implemented</td></tr>
-          <tr><td>Spectral graph theory</td><td>Use eigenstructure to understand connectivity and flow.</td><td>Score RAG/tool graphs by how easily untrusted content reaches privileged context or tools.</td><td>Future graph module</td></tr>
-          <tr><td>Percolation theory</td><td>Study when local connections create global propagation.</td><td>Model when small prompt instructions cascade into full policy compromise across tools and memory.</td><td>Future graph module</td></tr>
-          <tr><td>Markov decision processes</td><td>Sequential decision-making under uncertainty.</td><td>Model agent defense as state, action, transition, reward: allow, review, quarantine, block.</td><td>Future controller</td></tr>
-          <tr><td>Martingales and sequential tests</td><td>Detect statistically significant deviations over time.</td><td>Upgrade CUSUM into formal anytime-valid alarms for multi-turn attacks.</td><td>Near-term upgrade</td></tr>
-          <tr><td>Lyapunov stability</td><td>Show a dynamical system returns to a safe region after disturbances.</td><td>Define a safety potential that must decrease after guardrail intervention.</td><td>Future controller</td></tr>
-          <tr><td>Kalman and particle filtering</td><td>Estimate hidden state from noisy observations.</td><td>Track latent attack intent across conversation turns and tool calls.</td><td>Future sequential module</td></tr>
+          <tr><td>Bayesian decision theory</td><td>Choose actions by minimizing expected posterior loss.</td><td>Convert detector score, risk energy, and graph risk into posterior attack probability and action-specific loss.</td><td>Implemented practical analyzer</td></tr>
+          <tr><td>PAC-Bayes</td><td>Bound generalization risk using a prior/posterior over predictors.</td><td>Report uncertainty about detector robustness under shifted adversarial prompt distributions.</td><td>Implemented bound proxy</td></tr>
+          <tr><td>Distributionally robust optimization</td><td>Minimize worst-case loss over a ball around the training distribution.</td><td>Select thresholds against score perturbation neighborhoods.</td><td>Implemented threshold optimizer</td></tr>
+          <tr><td>Adversarial risk minimization</td><td>Optimize against perturbed samples rather than clean samples only.</td><td>Formalizes the adversarial loop as min over detector, max over red-team transformations.</td><td>Implemented through adversarial loop</td></tr>
+          <tr><td>Information bottleneck</td><td>Keep task-relevant information while discarding nuisance information.</td><td>Scores attack-intent information against obfuscation/nuisance pressure.</td><td>Implemented proxy</td></tr>
+          <tr><td>Minimum description length</td><td>Prefer explanations that compress the data well.</td><td>Flag prompts whose shorter explanation is adversarial intent rather than benign task completion.</td><td>Implemented proxy</td></tr>
+          <tr><td>Information geometry</td><td>Study probability distributions as curved manifolds.</td><td>Track Jensen-Shannon and Fisher-style distance to clean and attack prototypes.</td><td>Implemented prototype geometry</td></tr>
+          <tr><td>Optimal transport</td><td>Measure cost to move one distribution into another.</td><td>Estimate semantic/risk distance from clean distribution to attack distribution.</td><td>Implemented prototype affinity</td></tr>
+          <tr><td>Spectral graph theory</td><td>Use eigenstructure to understand connectivity and flow.</td><td>Score RAG/tool graphs by spectral radius and algebraic connectivity.</td><td>Implemented practical analyzer</td></tr>
+          <tr><td>Percolation theory</td><td>Study when local connections create global propagation.</td><td>Estimate probability that local risk edges cascade into compromise.</td><td>Implemented practical analyzer</td></tr>
+          <tr><td>Markov decision processes</td><td>Sequential decision-making under uncertainty.</td><td>Model agent defense as state, action, transition, reward: allow, review, quarantine, block.</td><td>Implemented practical controller</td></tr>
+          <tr><td>Martingales and sequential tests</td><td>Detect statistically significant deviations over time.</td><td>Add anytime-style e-value alarm for multi-turn attacks.</td><td>Implemented practical analyzer</td></tr>
+          <tr><td>Lyapunov stability</td><td>Show a dynamical system returns to a safe region after disturbances.</td><td>Define a safety potential that should decrease after guardrail intervention.</td><td>Implemented practical analyzer</td></tr>
+          <tr><td>Kalman and particle filtering</td><td>Estimate hidden state from noisy observations.</td><td>Track latent attack intent across conversation turns and tool calls.</td><td>Implemented hidden-intent filter proxy</td></tr>
           <tr><td>Statistical mechanics</td><td>Analyze macroscopic behavior from many interacting signals.</td><td>Risk energy and phase bands summarize many weak attack indicators into an operating regime.</td><td>Implemented</td></tr>
           <tr><td>Renormalization intuition</td><td>Study behavior across scales.</td><td>Aggregate token-level, sentence-level, turn-level, and session-level risks consistently.</td><td>Future multi-scale module</td></tr>
-          <tr><td>Causal inference</td><td>Separate correlation from causal influence.</td><td>Distinguish prompts that merely mention security from prompts that cause unsafe tool or context flow.</td><td>Future evaluation module</td></tr>
-          <tr><td>Differential privacy</td><td>Bound information leakage about hidden data.</td><td>Quantify whether a response policy protects secrets even under extraction attempts.</td><td>Future policy audit</td></tr>
-          <tr><td>Formal methods</td><td>Specify invariants and verify safety properties.</td><td>Express hard rules: untrusted content must not alter system policy or access secret-bearing tools.</td><td>Future agent guardrail</td></tr>
+          <tr><td>Causal inference</td><td>Separate correlation from causal influence.</td><td>Distinguish prompts that merely mention security from prompts that cause unsafe tool or context flow.</td><td>Implemented causal-risk proxy</td></tr>
+          <tr><td>Differential privacy</td><td>Bound information leakage about hidden data.</td><td>Quantify whether a response policy protects secrets even under extraction attempts.</td><td>Implemented leakage epsilon proxy</td></tr>
+          <tr><td>Formal methods</td><td>Specify invariants and verify safety properties.</td><td>Express hard rules: untrusted content must not alter system policy or access secret-bearing tools.</td><td>Implemented invariant checker</td></tr>
         </tbody>
       </table>
 

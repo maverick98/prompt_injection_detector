@@ -20,6 +20,10 @@ from prompt_injection_detector.models.classical import (
     train_classical_models,
 )
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
+from prompt_injection_detector.research.frontier_math import (
+    analyze_frontier_dataset,
+    analyze_frontier_prompt,
+)
 from prompt_injection_detector.research.risk_physics import analyze_prompt
 from prompt_injection_detector.robustness import run_robustness_suite
 
@@ -97,6 +101,41 @@ def physics(
         output.write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(f"[green]Wrote mathematical risk report to {output}[/green]")
     print(json.dumps(report, indent=2))
+
+
+@app.command()
+def frontier(
+    text: str | None = typer.Option(None, help="Optional prompt to analyze with frontier math."),
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
+    output: Path | None = typer.Option(None, help="Optional JSON output path."),
+    robust_radius: float = typer.Option(0.06, help="Distributional score perturbation radius."),
+) -> None:
+    """Run advanced Bayesian, robust, graph, stochastic, causal, and formal analyses."""
+
+    detector = load_detector(model_path)
+    result: dict[str, object] = {}
+    if text:
+        prediction = detector.predict_one(text)
+        result["prompt_frontier_analysis"] = analyze_frontier_prompt(
+            text,
+            detector_score=prediction.score,
+            detector_threshold=detector.threshold,
+        )
+        result["classifier"] = prediction.model_dump()
+    if dataset.exists():
+        frame = load_frame(dataset)
+        test_frame = frame[frame["split"] == "test"] if "split" in frame.columns else frame
+        result["dataset_frontier_analysis"] = analyze_frontier_dataset(
+            detector,
+            test_frame,
+            radius=robust_radius,
+        )
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(result, indent=2), encoding="utf-8")
+        print(f"[green]Wrote frontier research analysis to {output}[/green]")
+    print(json.dumps(result, indent=2))
 
 
 @app.command()

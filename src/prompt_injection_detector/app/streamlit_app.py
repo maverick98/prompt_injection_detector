@@ -17,6 +17,10 @@ from prompt_injection_detector.models.classical import (
     train_classical_models,
 )
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
+from prompt_injection_detector.research.frontier_math import (
+    analyze_frontier_dataset,
+    analyze_frontier_prompt,
+)
 from prompt_injection_detector.research.risk_physics import analyze_prompt
 
 
@@ -246,7 +250,8 @@ def research_tab(state: DemoState) -> None:
     st.subheader("Mathematical Research Signals")
     st.caption(
         "Information theory, statistical-physics energy, phase transition bands, "
-        "conformal uncertainty, sequential detection, graph risk, optimal transport, and control policy."
+        "conformal uncertainty, sequential detection, graph risk, optimal transport, Bayesian decision, "
+        "robust optimization, stochastic tests, causal checks, formal invariants, and control policy."
     )
     source = st.text_area(
         "Prompt or multi-turn transcript",
@@ -264,13 +269,23 @@ def research_tab(state: DemoState) -> None:
             detector_threshold=state.detector.threshold,
             turns=turns,
         ).to_dict()
+        frontier = analyze_frontier_prompt(
+            text,
+            detector_score=prediction.score,
+            detector_threshold=state.detector.threshold,
+            turns=turns,
+        )
 
-        cols = st.columns(5)
+        cols = st.columns(6)
         cols[0].metric("Classifier", f"{prediction.score:.3f}")
         cols[1].metric("Risk Energy", f"{report['energy_risk']['risk_energy']:.3f}")
         cols[2].metric("Leakage", f"{report['information_leakage']['score']:.3f}")
         cols[3].metric("Graph Risk", f"{report['graph_risk']['path_risk']:.3f}")
-        cols[4].metric("Action", report["control_policy"]["action"].title())
+        cols[4].metric(
+            "Posterior Attack",
+            f"{frontier['bayesian_decision']['posterior_attack_probability']:.3f}",
+        )
+        cols[5].metric("Action", frontier["mdp_control"]["optimal_policy_action"].title())
 
         st.write("Signal vector")
         st.dataframe(
@@ -316,6 +331,65 @@ def research_tab(state: DemoState) -> None:
                 use_container_width=True,
                 hide_index=True,
             )
+
+        st.write("Frontier mathematical analysis")
+        frontier_cols = st.columns(3)
+        with frontier_cols[0]:
+            st.write("Bayesian / MDP / Lyapunov")
+            st.json(
+                {
+                    "bayesian_decision": frontier["bayesian_decision"],
+                    "mdp_control": frontier["mdp_control"],
+                    "lyapunov_stability": frontier["lyapunov_stability"],
+                }
+            )
+        with frontier_cols[1]:
+            st.write("Geometry / Graph / Percolation")
+            st.json(
+                {
+                    "information_geometry": frontier["information_geometry"],
+                    "spectral_graph_and_percolation": {
+                        key: value
+                        for key, value in frontier["spectral_graph_and_percolation"].items()
+                        if key != "adjacency"
+                    },
+                    "minimum_description_length": frontier["minimum_description_length"],
+                    "information_bottleneck": frontier["information_bottleneck"],
+                }
+            )
+        with frontier_cols[2]:
+            st.write("Sequential / Causal / Formal")
+            st.json(
+                {
+                    "martingale": frontier["martingale_sequential_test"],
+                    "hidden_intent": frontier["hidden_intent_filter"],
+                    "causal_privacy": frontier["causal_and_privacy_audit"],
+                    "formal_invariants": frontier["formal_invariants"],
+                }
+            )
+
+    st.divider()
+    st.subheader("Dataset-Level Frontier Diagnostics")
+    if st.button("Run dataset frontier diagnostics"):
+        test_frame = state.dataset[state.dataset["split"] == "test"]
+        dataset_report = analyze_frontier_dataset(state.detector, test_frame)
+        cols = st.columns(4)
+        cols[0].metric("Empirical Error", f"{dataset_report['empirical_error']:.3f}")
+        cols[1].metric("PAC-Bayes Bound", f"{dataset_report['pac_bayes_bound']['bound']:.3f}")
+        cols[2].metric(
+            "Robust Threshold",
+            f"{dataset_report['distributionally_robust_threshold']['best_threshold']:.2f}",
+        )
+        cols[3].metric("Score Separation", f"{dataset_report['score_separation']:.3f}")
+        st.json(
+            {
+                "pac_bayes_bound": dataset_report["pac_bayes_bound"],
+                "distributionally_robust_threshold": dataset_report[
+                    "distributionally_robust_threshold"
+                ],
+                "score_drift_proxy": dataset_report["score_drift_proxy"],
+            }
+        )
 
 
 def main() -> None:
