@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from prompt_injection_detector.models.transformer import _training_arguments_kwargs
+from prompt_injection_detector.models.transformer import _trainer_kwargs, _training_arguments_kwargs
 
 
 class LegacyTrainingArguments:
@@ -49,3 +49,63 @@ def test_training_arguments_uses_current_eval_strategy_when_required():
 
     assert kwargs["eval_strategy"] == "epoch"
     assert "evaluation_strategy" not in kwargs
+
+
+class LegacyTrainer:
+    def __init__(
+        self,
+        model,
+        args,
+        train_dataset,
+        eval_dataset,
+        tokenizer,
+        data_collator,
+        compute_metrics,
+    ):
+        pass
+
+
+class CurrentTrainer:
+    def __init__(
+        self,
+        model,
+        args,
+        train_dataset,
+        eval_dataset,
+        processing_class,
+        data_collator,
+        compute_metrics,
+    ):
+        pass
+
+
+def test_trainer_kwargs_uses_legacy_tokenizer_when_available():
+    kwargs = _trainer_kwargs(
+        LegacyTrainer,
+        model="model",
+        args="args",
+        train_dataset="train",
+        eval_dataset="eval",
+        tokenizer="tokenizer",
+        data_collator="collator",
+        compute_metrics="metrics",
+    )
+
+    assert kwargs["tokenizer"] == "tokenizer"
+    assert "processing_class" not in kwargs
+
+
+def test_trainer_kwargs_uses_current_processing_class_when_required():
+    kwargs = _trainer_kwargs(
+        CurrentTrainer,
+        model="model",
+        args="args",
+        train_dataset="train",
+        eval_dataset="eval",
+        tokenizer="tokenizer",
+        data_collator="collator",
+        compute_metrics="metrics",
+    )
+
+    assert kwargs["processing_class"] == "tokenizer"
+    assert "tokenizer" not in kwargs

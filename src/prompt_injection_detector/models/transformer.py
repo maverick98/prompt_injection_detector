@@ -28,6 +28,35 @@ def _training_arguments_kwargs(training_arguments_cls: type, output_dir: Path, e
     return kwargs
 
 
+def _trainer_kwargs(
+    trainer_cls: type,
+    *,
+    model,
+    args,
+    train_dataset,
+    eval_dataset,
+    tokenizer,
+    data_collator,
+    compute_metrics,
+) -> dict:
+    """Build Trainer kwargs across Transformers API versions."""
+
+    kwargs = {
+        "model": model,
+        "args": args,
+        "train_dataset": train_dataset,
+        "eval_dataset": eval_dataset,
+        "data_collator": data_collator,
+        "compute_metrics": compute_metrics,
+    }
+    parameters = inspect.signature(trainer_cls).parameters
+    if "tokenizer" in parameters:
+        kwargs["tokenizer"] = tokenizer
+    elif "processing_class" in parameters:
+        kwargs["processing_class"] = tokenizer
+    return kwargs
+
+
 def fine_tune_transformer(
     train: pd.DataFrame,
     val: pd.DataFrame,
@@ -79,13 +108,16 @@ def fine_tune_transformer(
     args = TrainingArguments(**_training_arguments_kwargs(TrainingArguments, output_dir, epochs))
 
     trainer = Trainer(
-        model=model,
-        args=args,
-        train_dataset=train_ds,
-        eval_dataset=val_ds,
-        tokenizer=tokenizer,
-        data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
-        compute_metrics=compute_metrics,
+        **_trainer_kwargs(
+            Trainer,
+            model=model,
+            args=args,
+            train_dataset=train_ds,
+            eval_dataset=val_ds,
+            tokenizer=tokenizer,
+            data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
+            compute_metrics=compute_metrics,
+        )
     )
     trainer.train()
     trainer.save_model(str(output_dir))
