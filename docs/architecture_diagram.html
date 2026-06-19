@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prompt Injection Detector - Research Architecture</title>
+  <style>
+    :root {
+      --ink: #102033;
+      --muted: #5b6878;
+      --paper: #f7fafc;
+      --panel: rgba(255, 255, 255, 0.88);
+      --line: rgba(18, 32, 51, 0.14);
+      --red: #e52b34;
+      --teal: #00a6a6;
+      --blue: #246bfe;
+      --green: #24a148;
+      --gold: #f59f00;
+      --violet: #7c3aed;
+      --cyan: #00b8d9;
+      --pink: #d946ef;
+      --shadow: 0 18px 55px rgba(16, 32, 51, 0.16);
+      --soft-shadow: 0 10px 30px rgba(16, 32, 51, 0.11);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background:
+        linear-gradient(135deg, rgba(36, 107, 254, 0.11), transparent 34%),
+        linear-gradient(45deg, transparent 54%, rgba(0, 166, 166, 0.12)),
+        var(--paper);
+      color: var(--ink);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      background-image:
+        linear-gradient(rgba(16, 32, 51, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 32, 51, 0.06) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 78%);
+    }
+
+    body::after {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: -1;
+      height: 45vh;
+      content: "";
+      background: linear-gradient(to top, rgba(255, 255, 255, 0.86), transparent);
+      pointer-events: none;
+    }
+
+    .page {
+      width: min(1600px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 34px 0 52px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 28px;
+      align-items: center;
+      min-height: 360px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 18px;
+      color: var(--red);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(229, 43, 52, 0.45);
+      animation: pulse 1.8s ease-out infinite;
+    }
+
+    h1 {
+      max-width: 950px;
+      margin: 0;
+      font-size: clamp(2.4rem, 5.4vw, 5.8rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 850px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.5vw, 1.24rem);
+      line-height: 1.7;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .metric {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.45rem;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 430px;
+      perspective: 1300px;
+    }
+
+    .platform {
+      position: absolute;
+      inset: 46px 0 20px;
+      border: 1px solid rgba(36, 107, 254, 0.18);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.34)),
+        radial-gradient(circle at 18% 16%, rgba(0, 184, 217, 0.22), transparent 30%),
+        radial-gradient(circle at 72% 22%, rgba(245, 159, 0, 0.18), transparent 30%);
+      box-shadow: var(--shadow);
+      transform: rotateX(58deg) rotateZ(-7deg);
+      transform-style: preserve-3d;
+      animation: platformFloat 8s ease-in-out infinite;
+    }
+
+    .platform::before,
+    .platform::after {
+      position: absolute;
+      content: "";
+      border: 1px solid rgba(16, 32, 51, 0.09);
+      border-radius: inherit;
+    }
+
+    .platform::before {
+      inset: 30px;
+      transform: translateZ(42px);
+    }
+
+    .platform::after {
+      inset: 60px;
+      transform: translateZ(84px);
+    }
+
+    .core {
+      position: absolute;
+      top: 92px;
+      left: 50%;
+      width: 250px;
+      height: 250px;
+      transform: translateX(-50%);
+      transform-style: preserve-3d;
+      animation: coreTurn 11s linear infinite;
+    }
+
+    .shield {
+      position: absolute;
+      inset: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: 22px 22px 54px 54px;
+      background:
+        linear-gradient(145deg, rgba(229, 43, 52, 0.94), rgba(124, 58, 237, 0.86)),
+        linear-gradient(45deg, rgba(255, 255, 255, 0.22), transparent);
+      box-shadow: 0 24px 50px rgba(124, 58, 237, 0.28);
+      color: white;
+      font-weight: 900;
+      text-align: center;
+      transform: translateZ(80px);
+    }
+
+    .shield span {
+      display: block;
+      font-size: 0.74rem;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      opacity: 0.82;
+    }
+
+    .shield strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.4rem;
+      line-height: 1.05;
+    }
+
+    .ring {
+      position: absolute;
+      inset: 20px;
+      border: 2px solid rgba(0, 184, 217, 0.35);
+      border-radius: 50%;
+      transform-style: preserve-3d;
+      animation: ringSpin 9s linear infinite;
+    }
+
+    .ring:nth-child(2) {
+      inset: 0;
+      border-color: rgba(245, 159, 0, 0.36);
+      transform: rotateX(70deg);
+      animation-duration: 13s;
+      animation-direction: reverse;
+    }
+
+    .ring:nth-child(3) {
+      inset: 44px;
+      border-color: rgba(36, 161, 72, 0.36);
+      transform: rotateY(70deg);
+      animation-duration: 7s;
+    }
+
+    .orbit-label {
+      position: absolute;
+      min-width: 132px;
+      padding: 9px 11px;
+      border: 1px solid rgba(16, 32, 51, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--soft-shadow);
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-align: center;
+      backdrop-filter: blur(14px);
+    }
+
+    .orbit-label:nth-of-type(1) { top: 15px; left: 8px; border-color: rgba(0, 166, 166, 0.35); }
+    .orbit-label:nth-of-type(2) { top: 54px; right: -12px; border-color: rgba(229, 43, 52, 0.35); }
+    .orbit-label:nth-of-type(3) { right: 8px; bottom: 26px; border-color: rgba(245, 159, 0, 0.35); }
+    .orbit-label:nth-of-type(4) { bottom: 18px; left: -8px; border-color: rgba(124, 58, 237, 0.35); }
+
+    .diagram {
+      position: relative;
+      margin-top: 36px;
+      padding: 28px;
+      border: 1px solid rgba(16, 32, 51, 0.10);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .diagram::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background:
+        linear-gradient(120deg, transparent, rgba(36, 107, 254, 0.10), transparent),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0,
+          transparent 80px,
+          rgba(16, 32, 51, 0.035) 81px,
+          transparent 82px
+        );
+      pointer-events: none;
+      animation: sheen 8s linear infinite;
+    }
+
+    .diagram-header {
+      position: relative;
+      display: flex;
+      gap: 20px;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.5rem, 2.6vw, 2.4rem);
+      letter-spacing: 0;
+    }
+
+    .diagram-header p {
+      max-width: 620px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      max-width: 520px;
+    }
+
+    .tag {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid rgba(16, 32, 51, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.76);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .tag i {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--blue);
+    }
+
+    .architecture {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+      min-height: 530px;
+    }
+
+    .layer {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 500px;
+      padding: 18px;
+      border: 1px solid rgba(16, 32, 51, 0.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.91), rgba(255, 255, 255, 0.70)),
+        linear-gradient(135deg, var(--tone), transparent 70%);
+      box-shadow: var(--soft-shadow);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: transform 250ms ease, box-shadow 250ms ease;
+    }
+
+    .layer:hover {
+      box-shadow: 0 24px 70px rgba(16, 32, 51, 0.19);
+      transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
+    }
+
+    .layer::after {
+      position: absolute;
+      inset: auto 16px 16px;
+      height: 5px;
+      content: "";
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0.72;
+    }
+
+    .layer h3 {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 0 0 14px;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .index {
+      display: inline-grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.82rem;
+      box-shadow: 0 8px 16px color-mix(in srgb, var(--accent), transparent 70%);
+    }
+
+    .node-list {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .node {
+      position: relative;
+      padding: 12px;
+      border: 1px solid rgba(16, 32, 51, 0.10);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 8px 22px rgba(16, 32, 51, 0.08);
+      overflow: hidden;
+    }
+
+    .node::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      content: "";
+      background: var(--accent);
+    }
+
+    .node strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.92rem;
+    }
+
+    .node span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .flow-svg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .flow {
+      fill: none;
+      stroke-linecap: round;
+      stroke-width: 4;
+      stroke-dasharray: 12 16;
+      filter: drop-shadow(0 6px 10px rgba(36, 107, 254, 0.20));
+      animation: dash 1.8s linear infinite;
+    }
+
+    .flow-main { stroke: rgba(36, 107, 254, 0.40); }
+    .flow-red { stroke: rgba(229, 43, 52, 0.42); animation-direction: reverse; }
+    .flow-green { stroke: rgba(36, 161, 72, 0.42); }
+    .flow-gold { stroke: rgba(245, 159, 0, 0.45); animation-duration: 2.25s; }
+
+    .research-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .research-card {
+      position: relative;
+      min-height: 168px;
+      padding: 18px;
+      border: 1px solid rgba(16, 32, 51, 0.11);
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72)),
+        linear-gradient(135deg, var(--tone), transparent);
+      box-shadow: var(--soft-shadow);
+      transform-style: preserve-3d;
+      overflow: hidden;
+      animation: cardDrift 7s ease-in-out infinite;
+      animation-delay: var(--delay);
+    }
+
+    .research-card::before {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 48px;
+      height: 48px;
+      content: "";
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      opacity: 0.26;
+      transform: rotate(45deg);
+    }
+
+    .research-card h3 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .research-card p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .formula {
+      display: block;
+      width: fit-content;
+      margin-top: 14px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(16, 32, 51, 0.07);
+      color: var(--ink);
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.74rem;
+      line-height: 1.35;
+    }
+
+    .footer-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .deliverable {
+      padding: 16px;
+      border: 1px solid rgba(16, 32, 51, 0.11);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--soft-shadow);
+    }
+
+    .deliverable strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .deliverable span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .svg-showcase {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .packet {
+      fill: var(--red);
+      filter: drop-shadow(0 6px 12px rgba(229, 43, 52, 0.28));
+      offset-path: path("M 95 300 C 240 190, 360 390, 510 270 S 760 160, 900 280");
+      animation: packetMove 4.5s linear infinite;
+    }
+
+    .packet:nth-child(2) {
+      fill: var(--cyan);
+      animation-delay: -1.4s;
+      animation-duration: 5.8s;
+    }
+
+    .packet:nth-child(3) {
+      fill: var(--gold);
+      animation-delay: -2.8s;
+      animation-duration: 6.6s;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(229, 43, 52, 0.45); }
+      80% { box-shadow: 0 0 0 18px rgba(229, 43, 52, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 43, 52, 0); }
+    }
+
+    @keyframes platformFloat {
+      0%, 100% { transform: rotateX(58deg) rotateZ(-7deg) translateY(0); }
+      50% { transform: rotateX(58deg) rotateZ(-7deg) translateY(-14px); }
+    }
+
+    @keyframes coreTurn {
+      from { transform: translateX(-50%) rotateY(0deg) rotateX(8deg); }
+      to { transform: translateX(-50%) rotateY(360deg) rotateX(8deg); }
+    }
+
+    @keyframes ringSpin {
+      from { transform: rotateX(70deg) rotateZ(0deg); }
+      to { transform: rotateX(70deg) rotateZ(360deg); }
+    }
+
+    @keyframes dash {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: -56; }
+    }
+
+    @keyframes packetMove {
+      from { offset-distance: 0%; transform: scale(1); }
+      50% { transform: scale(1.35); }
+      to { offset-distance: 100%; transform: scale(1); }
+    }
+
+    @keyframes sheen {
+      from { transform: translateX(-30%); }
+      to { transform: translateX(30%); }
+    }
+
+    @keyframes cardDrift {
+      0%, 100% { transform: translateY(0) rotateX(0deg); }
+      50% { transform: translateY(-8px) rotateX(2deg); }
+    }
+
+    @media (max-width: 1180px) {
+      .hero,
+      .architecture,
+      .research-grid,
+      .footer-strip {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .architecture {
+        min-height: auto;
+      }
+
+      .layer {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100vw - 24px, 1600px);
+        padding-top: 20px;
+      }
+
+      .hero,
+      .hero-metrics,
+      .architecture,
+      .research-grid,
+      .footer-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: 320px;
+      }
+
+      .core {
+        width: 210px;
+        height: 210px;
+      }
+
+      .diagram {
+        padding: 18px;
+      }
+
+      .diagram-header {
+        display: block;
+      }
+
+      .legend {
+        justify-content: flex-start;
+        margin-top: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-label="Project overview">
+      <div>
+        <div class="eyebrow"><span class="pulse-dot"></span> Prompt Injection Detector Research System</div>
+        <h1>Attack, defend, evolve, and explain.</h1>
+        <p class="lead">
+          A full defensive research architecture for prompt-injection detection: synthetic and hard-case
+          data, recall-focused ML, red-team evasions, adversarial retraining, game theory, and a new
+          mathematical risk-physics layer for interpretable security decisions.
+        </p>
+        <div class="hero-metrics" aria-label="Core capabilities">
+          <div class="metric"><strong>5</strong><span>Streamlit surfaces: Detector, Red Team, Benchmarks, Game Theory, Research Signals.</span></div>
+          <div class="metric"><strong>8+</strong><span>Mathematical lenses spanning information theory, physics, graph theory, and control.</span></div>
+          <div class="metric"><strong>Loop</strong><span>Adaptive attacker/defender cycle with robustness and minimax analysis.</span></div>
+        </div>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <div class="platform"></div>
+        <svg class="svg-showcase" viewBox="0 0 1000 560" preserveAspectRatio="none">
+          <path d="M 95 300 C 240 190, 360 390, 510 270 S 760 160, 900 280" fill="none" stroke="rgba(36,107,254,.22)" stroke-width="5" stroke-linecap="round" stroke-dasharray="8 16"/>
+          <circle class="packet" r="10" cx="0" cy="0"></circle>
+          <circle class="packet" r="8" cx="0" cy="0"></circle>
+          <circle class="packet" r="6" cx="0" cy="0"></circle>
+        </svg>
+        <div class="core">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="shield">
+            <div>
+              <span>Central Gate</span>
+              <strong>Prompt<br>Security</strong>
+            </div>
+          </div>
+          <div class="orbit-label">Classifier</div>
+          <div class="orbit-label">Red Team</div>
+          <div class="orbit-label">Game Theory</div>
+          <div class="orbit-label">Risk Physics</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="diagram" aria-label="Architecture diagram">
+      <div class="diagram-header">
+        <div>
+          <h2>End-to-End Architecture</h2>
+          <p>
+            The project is organized as a living defense pipeline. Prompts and retrieved content are
+            scored by ML and mathematical risk signals, tested by adaptive attackers, then summarized
+            in reports, notebooks, and the Streamlit application.
+          </p>
+        </div>
+        <div class="legend" aria-label="Legend">
+          <span class="tag"><i style="background: var(--red);"></i> Attack pressure</span>
+          <span class="tag"><i style="background: var(--blue);"></i> Detection path</span>
+          <span class="tag"><i style="background: var(--green);"></i> Evaluation</span>
+          <span class="tag"><i style="background: var(--gold);"></i> Research signals</span>
+        </div>
+      </div>
+
+      <svg class="flow-svg" viewBox="0 0 1400 620" preserveAspectRatio="none" aria-hidden="true">
+        <path class="flow flow-main" d="M 70 210 C 250 80, 330 360, 500 235 S 770 150, 930 235 S 1160 390, 1320 220"></path>
+        <path class="flow flow-red" d="M 112 410 C 310 530, 410 245, 590 380 S 895 505, 1110 350 S 1240 260, 1330 360"></path>
+        <path class="flow flow-green" d="M 85 310 C 290 310, 400 310, 600 310 S 1010 310, 1320 310"></path>
+        <path class="flow flow-gold" d="M 1150 115 C 940 90, 850 510, 670 420 S 350 180, 160 160"></path>
+      </svg>
+
+      <div class="architecture">
+        <article class="layer" style="--accent: var(--cyan); --tone: rgba(0,184,217,0.14);">
+          <h3><span class="index">1</span> Inputs</h3>
+          <div class="node-list">
+            <div class="node"><strong>User prompts</strong><span>Direct instructions, multi-turn interactions, support or business tasks.</span></div>
+            <div class="node"><strong>RAG documents</strong><span>Retrieved content that may carry indirect injection instructions.</span></div>
+            <div class="node"><strong>Agent context</strong><span>Tool requests, memory, policies, and hidden operational boundaries.</span></div>
+          </div>
+        </article>
+
+        <article class="layer" style="--accent: var(--red); --tone: rgba(229,43,52,0.13);">
+          <h3><span class="index">2</span> Detector</h3>
+          <div class="node-list">
+            <div class="node"><strong>TF-IDF ensemble</strong><span>Word and character n-grams for obfuscation-aware detection.</span></div>
+            <div class="node"><strong>Recall calibration</strong><span>Thresholds selected for security-first false-negative reduction.</span></div>
+            <div class="node"><strong>Category model</strong><span>Role override, smuggling, exfiltration, jailbreak, indirect injection.</span></div>
+          </div>
+        </article>
+
+        <article class="layer" style="--accent: var(--gold); --tone: rgba(245,159,0,0.15);">
+          <h3><span class="index">3</span> Research Signals</h3>
+          <div class="node-list">
+            <div class="node"><strong>Risk physics</strong><span>Energy, phase bands, information leakage, graph path risk.</span></div>
+            <div class="node"><strong>Uncertainty</strong><span>Conformal-style ambiguous prediction sets near boundaries.</span></div>
+            <div class="node"><strong>Control action</strong><span>Allow, review, quarantine, or block with an explicit guardrail.</span></div>
+          </div>
+        </article>
+
+        <article class="layer" style="--accent: var(--violet); --tone: rgba(124,58,237,0.14);">
+          <h3><span class="index">4</span> Adaptive Attack</h3>
+          <div class="node-list">
+            <div class="node"><strong>Red-team generator</strong><span>Paraphrase, obfuscation, encoding, role-play, nested injection.</span></div>
+            <div class="node"><strong>Adversarial loop</strong><span>Find misses, generate evasions, retrain, compare across rounds.</span></div>
+            <div class="node"><strong>Zero-sum game</strong><span>Attacker strategies versus defender threshold policies.</span></div>
+          </div>
+        </article>
+
+        <article class="layer" style="--accent: var(--green); --tone: rgba(36,161,72,0.13);">
+          <h3><span class="index">5</span> Outputs</h3>
+          <div class="node-list">
+            <div class="node"><strong>Streamlit app</strong><span>Live detector, red team, benchmarks, game theory, research signals.</span></div>
+            <div class="node"><strong>Reports</strong><span>Metrics, hard-suite analysis, equilibrium, sensitivity, risk explanations.</span></div>
+            <div class="node"><strong>Colab notebook</strong><span>Portable experiment path for demos and reproducibility.</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="research-grid" aria-label="Mathematical research areas">
+      <article class="research-card" style="--accent: var(--blue); --tone: rgba(36,107,254,0.13); --delay: 0s;">
+        <h3>Information Theory</h3>
+        <p>Scores leakage intent by combining secret-seeking language, hidden-state references, entropy, and compression pressure.</p>
+        <code class="formula">Leakage = f(secret terms, hidden state, H(text))</code>
+      </article>
+
+      <article class="research-card" style="--accent: var(--red); --tone: rgba(229,43,52,0.13); --delay: -.5s;">
+        <h3>Statistical Physics</h3>
+        <p>Turns override, exfiltration, obfuscation, tool pressure, and authority hijack into a single risk-energy landscape.</p>
+        <code class="formula">E = w dot signal_vector</code>
+      </article>
+
+      <article class="research-card" style="--accent: var(--gold); --tone: rgba(245,159,0,0.16); --delay: -1s;">
+        <h3>Phase Transitions</h3>
+        <p>Maps prompts into low-risk, critical review, and high-risk phases so thresholds behave like operating regions.</p>
+        <code class="formula">low -> critical -> block</code>
+      </article>
+
+      <article class="research-card" style="--accent: var(--violet); --tone: rgba(124,58,237,0.13); --delay: -1.5s;">
+        <h3>Conformal Uncertainty</h3>
+        <p>Returns an ambiguous prediction set when classifier score or energy is near a decision boundary.</p>
+        <code class="formula">Y_hat = {clean, injection}</code>
+      </article>
+
+      <article class="research-card" style="--accent: var(--cyan); --tone: rgba(0,184,217,0.13); --delay: -2s;">
+        <h3>Sequential Detection</h3>
+        <p>Uses CUSUM-style accumulation to expose multi-turn attacks that look harmless one turn at a time.</p>
+        <code class="formula">S_t = max(0, alpha S_t-1 + E_t - baseline)</code>
+      </article>
+
+      <article class="research-card" style="--accent: var(--green); --tone: rgba(36,161,72,0.13); --delay: -2.5s;">
+        <h3>Graph, Transport, Control</h3>
+        <p>Finds dangerous paths, compares distance to clean and attack prototypes, then recommends a control action.</p>
+        <code class="formula">path risk -> OT affinity -> guardrail</code>
+      </article>
+    </section>
+
+    <section class="footer-strip" aria-label="Project deliverables">
+      <div class="deliverable"><strong>CLI Toolkit</strong><span>Dataset build, train, predict, red team, adversarial loop, benchmark, game, physics.</span></div>
+      <div class="deliverable"><strong>Streamlit Cloud</strong><span>Live demo backed by GitHub master and the root entrypoint streamlit_app.py.</span></div>
+      <div class="deliverable"><strong>Evaluation Reports</strong><span>Starter metrics, hard benchmark, robustness, game equilibrium, sensitivity outputs.</span></div>
+      <div class="deliverable"><strong>Research Story</strong><span>A coherent security narrative: adaptive attacks require adaptive, explainable defenses.</span></div>
+    </section>
+  </main>
+</body>
+</html>
