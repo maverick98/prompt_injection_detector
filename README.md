@@ -89,6 +89,20 @@ Generate the reproducible 1,500-row starter dataset:
 pid build-dataset --output data/processed/dataset.csv --injection-samples 750 --clean-samples 750
 ```
 
+Build a stronger submission dataset by merging the synthetic starter data with
+HuggingFace `deepset/prompt-injections`:
+
+```powershell
+python -m pip install datasets
+pid build-dataset --output data/processed/dataset.csv --injection-samples 750 --clean-samples 750 --include-public
+```
+
+You can also import the public dataset by itself:
+
+```powershell
+pid import-hf-deepset --output data/public/deepset_prompt_injections.csv
+```
+
 Columns:
 
 - `text`: prompt or document content
@@ -101,7 +115,7 @@ Columns:
 The synthetic generator is a bootstrap. For a final portfolio or paper-quality
 submission, augment it with:
 
-- HuggingFace `deepset/prompt-injections`
+- HuggingFace `deepset/prompt-injections` through `pid build-dataset --include-public`
 - OWASP LLM Top 10 examples
 - responsibly collected jailbreak examples
 - manually crafted examples for underrepresented categories

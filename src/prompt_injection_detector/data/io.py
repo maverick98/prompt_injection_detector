@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -38,6 +39,22 @@ def load_frame(path: str | Path) -> pd.DataFrame:
     return frame
 
 
+def _safe_stratify_column(frame: pd.DataFrame, holdout_size: float) -> pd.Series | None:
+    for column in ("category", "label"):
+        if column not in frame.columns:
+            continue
+        counts = frame[column].value_counts()
+        holdout_count = math.ceil(len(frame) * holdout_size)
+        if (
+            len(counts) > 1
+            and counts.min() >= 2
+            and holdout_count >= len(counts)
+            and len(frame) - holdout_count >= len(counts)
+        ):
+            return frame[column]
+    return None
+
+
 def stratified_split(
     frame: pd.DataFrame,
     test_size: float = 0.15,
@@ -47,14 +64,14 @@ def stratified_split(
     train_val, test = train_test_split(
         frame,
         test_size=test_size,
-        stratify=frame["category"],
+        stratify=_safe_stratify_column(frame, test_size),
         random_state=random_state,
     )
     adjusted_val_size = val_size / (1.0 - test_size)
     train, val = train_test_split(
         train_val,
         test_size=adjusted_val_size,
-        stratify=train_val["category"],
+        stratify=_safe_stratify_column(train_val, adjusted_val_size),
         random_state=random_state,
     )
     train = train.copy()
@@ -64,4 +81,3 @@ def stratified_split(
     val["split"] = Split.VAL.value
     test["split"] = Split.TEST.value
     return pd.concat([train, val, test], ignore_index=True)
-

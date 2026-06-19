@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import typer
@@ -9,7 +10,8 @@ from rich import print
 
 from prompt_injection_detector.adversarial import run_adversarial_loop
 from prompt_injection_detector.data.hard_cases import build_hard_case_suite
-from prompt_injection_detector.data.io import load_frame, save_samples, stratified_split
+from prompt_injection_detector.data.io import load_frame, samples_to_frame, stratified_split
+from prompt_injection_detector.data.public_sources import load_deepset_prompt_injections
 from prompt_injection_detector.data.synthetic import generate_synthetic_dataset
 from prompt_injection_detector.evaluation.benchmark import evaluate_hard_cases, write_research_summary
 from prompt_injection_detector.evaluation.game_theory import evaluate_strategy_game, write_game_outputs
@@ -36,12 +38,36 @@ def build_dataset(
     injection_samples: int = 750,
     clean_samples: int = 750,
     seed: int = 42,
+    include_public: bool = typer.Option(False, help="Merge HuggingFace deepset/prompt-injections."),
 ) -> None:
     samples = generate_synthetic_dataset(injection_samples, clean_samples, seed)
-    path = save_samples(samples, output)
-    frame = stratified_split(load_frame(path), random_state=seed)
-    frame.to_csv(path, index=False)
-    print(f"[green]Wrote {len(frame)} samples to {path}[/green]")
+    if include_public:
+        public_samples = load_deepset_prompt_injections()
+        samples.extend(public_samples)
+        print(f"[cyan]Loaded {len(public_samples)} public HuggingFace samples[/cyan]")
+    frame = samples_to_frame(samples)
+    frame = stratified_split(frame, random_state=seed)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(output, index=False)
+    print(f"[green]Wrote {len(frame)} samples to {output}[/green]")
+
+
+@app.command()
+def import_hf_deepset(
+    output: Path = typer.Option(Path("data/public/deepset_prompt_injections.csv")),
+    split: bool = typer.Option(True, help="Apply the project 70/15/15 stratified split."),
+    seed: int = 42,
+) -> None:
+    """Import HuggingFace deepset/prompt-injections into the project schema."""
+
+    samples = load_deepset_prompt_injections()
+    frame = samples_to_frame(samples)
+    if split:
+        frame = stratified_split(frame, random_state=seed)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(output, index=False)
+    print(f"[green]Wrote {len(frame)} public samples to {output}[/green]")
+    print(frame.groupby(["label", "category"]).size().to_string())
 
 
 @app.command()
@@ -49,7 +75,7 @@ def train(
     dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
     model_out: Path = typer.Option(Path("artifacts/detector.joblib")),
     metrics_out: Path = typer.Option(Path("reports/test_metrics.json")),
-    decision_threshold: float | None = typer.Option(
+    decision_threshold: Optional[float] = typer.Option(
         None,
         help="Optional fixed decision threshold. If omitted, validation calibration is used.",
     ),
@@ -84,7 +110,7 @@ def predict(
 def physics(
     text: str,
     model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
-    output: Path | None = typer.Option(None, help="Optional JSON output path."),
+    output: Optional[Path] = typer.Option(None, help="Optional JSON output path."),
 ) -> None:
     """Run mathematical risk analysis: information theory, physics, graph, OT, and control."""
 
@@ -105,10 +131,10 @@ def physics(
 
 @app.command()
 def frontier(
-    text: str | None = typer.Option(None, help="Optional prompt to analyze with frontier math."),
+    text: Optional[str] = typer.Option(None, help="Optional prompt to analyze with frontier math."),
     dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
     model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
-    output: Path | None = typer.Option(None, help="Optional JSON output path."),
+    output: Optional[Path] = typer.Option(None, help="Optional JSON output path."),
     robust_radius: float = typer.Option(0.06, help="Distributional score perturbation radius."),
 ) -> None:
     """Run advanced Bayesian, robust, graph, stochastic, causal, and formal analyses."""
