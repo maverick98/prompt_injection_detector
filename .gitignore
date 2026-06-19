@@ -17,8 +17,14 @@ reports/*.png
 reports/*.csv
 reports/*.json
 reports/*.md
+reports/**/*.csv
+reports/**/*.json
+reports/**/*.md
 !reports/.gitkeep
 
 .env
 .streamlit/secrets.toml
 *.log
+~$*.docx
+tests/prompt_injection_detector_outputs_*/
+tests/prompt_injection_detector_outputs_*.zip

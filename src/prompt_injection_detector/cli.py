@@ -8,9 +8,11 @@ import typer
 from rich import print
 
 from prompt_injection_detector.adversarial import run_adversarial_loop
-from prompt_injection_detector.evaluation.benchmark import evaluate_hard_cases, write_research_summary
+from prompt_injection_detector.data.hard_cases import build_hard_case_suite
 from prompt_injection_detector.data.io import load_frame, save_samples, stratified_split
 from prompt_injection_detector.data.synthetic import generate_synthetic_dataset
+from prompt_injection_detector.evaluation.benchmark import evaluate_hard_cases, write_research_summary
+from prompt_injection_detector.evaluation.game_theory import evaluate_strategy_game, write_game_outputs
 from prompt_injection_detector.models.classical import (
     evaluate_detector,
     load_detector,
@@ -150,6 +152,85 @@ def benchmark(
         f"{hard_metrics['classification_report']['1']['recall']:.3f}; "
         f"precision: {hard_metrics['classification_report']['1']['precision']:.3f}"
     )
+
+
+@app.command()
+def game(
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
+    output_dir: Path = typer.Option(Path("reports")),
+    seed_limit: int = typer.Option(60, help="Maximum dataset injection seeds to red-team."),
+    include_hard_cases: bool = typer.Option(True, help="Include curated hard-suite injections."),
+    thresholds: str = typer.Option(
+        "",
+        help="Comma-separated defender thresholds. Defaults to a recall/balanced/precision grid.",
+    ),
+    false_positive_weight: float = typer.Option(
+        0.25,
+        help="Operational cost multiplier for false positives in defender loss.",
+    ),
+    sensitivity_weights: str = typer.Option(
+        "0.25,1.0",
+        help="Comma-separated false-positive weights for equilibrium sensitivity analysis.",
+    ),
+) -> None:
+    """Run a zero-sum game analysis over attacker strategies and defender thresholds."""
+
+    detector = load_detector(model_path)
+    frame = load_frame(dataset)
+    test_frame = frame[frame["split"] == "test"] if "split" in frame.columns else frame
+    seed_texts = test_frame[test_frame["label"].astype(int) == 1]["text"].head(seed_limit).tolist()
+    benign_texts = test_frame[test_frame["label"].astype(int) == 0]["text"].head(seed_limit).tolist()
+    if include_hard_cases:
+        hard_cases = build_hard_case_suite()
+        seed_texts.extend(sample.text for sample in hard_cases if int(sample.label) == 1)
+        benign_texts.extend(sample.text for sample in hard_cases if int(sample.label) == 0)
+    if thresholds.strip():
+        threshold_values = [float(value.strip()) for value in thresholds.split(",") if value.strip()]
+    else:
+        threshold_values = [0.25, 0.41, float(detector.threshold), 0.56, 0.70]
+    result = evaluate_strategy_game(
+        detector,
+        seed_texts=seed_texts,
+        benign_texts=benign_texts,
+        thresholds=threshold_values,
+        false_positive_weight=false_positive_weight,
+    )
+    paths = write_game_outputs(result, output_dir)
+    sensitivity_rows = []
+    for weight in [float(value.strip()) for value in sensitivity_weights.split(",") if value.strip()]:
+        sensitivity = evaluate_strategy_game(
+            detector,
+            seed_texts=seed_texts,
+            benign_texts=benign_texts,
+            thresholds=threshold_values,
+            false_positive_weight=weight,
+        )
+        attacker_idx = max(
+            range(len(sensitivity["attacker_strategies"])),
+            key=lambda idx: sensitivity["equilibrium"]["attacker_mixed_strategy"][idx],
+        )
+        defender_idx = max(
+            range(len(sensitivity["defender_thresholds"])),
+            key=lambda idx: sensitivity["equilibrium"]["defender_mixed_strategy"][idx],
+        )
+        sensitivity_rows.append(
+            {
+                "false_positive_weight": weight,
+                "equilibrium_loss": sensitivity["equilibrium"]["value"],
+                "primary_attacker_strategy": sensitivity["attacker_strategies"][attacker_idx],
+                "primary_attacker_weight": sensitivity["equilibrium"]["attacker_mixed_strategy"][attacker_idx],
+                "primary_defender_threshold": sensitivity["defender_thresholds"][defender_idx],
+                "primary_defender_weight": sensitivity["equilibrium"]["defender_mixed_strategy"][defender_idx],
+            }
+        )
+    sensitivity_path = output_dir / "game_sensitivity.csv"
+    pd.DataFrame(sensitivity_rows).to_csv(sensitivity_path, index=False)
+    print(f"[green]Wrote game payoff matrix to {paths['payoff_matrix']}[/green]")
+    print(f"[green]Wrote game equilibrium to {paths['equilibrium']}[/green]")
+    print(f"[green]Wrote game report to {paths['report']}[/green]")
+    print(f"[green]Wrote game sensitivity analysis to {sensitivity_path}[/green]")
+    print(f"Equilibrium defender loss: {result['equilibrium']['value']:.3f}")
 
 
 @app.command()

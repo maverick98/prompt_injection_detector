@@ -110,6 +110,42 @@ This is expected on the template-driven starter data. After adding public and
 manual examples, the same loop should produce a more meaningful attack-success
 curve.
 
+## Game-Theoretic Analysis
+
+The project now includes a strategic attacker/defender analysis. The attacker
+chooses among red-team evasion strategies, while the defender chooses among
+threshold policies. The loss matrix combines attacker bypass rate with a weighted
+false-positive burden, so the defender minimizes worst-case security and
+usability loss.
+
+Run:
+
+```powershell
+pid game --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib --output-dir reports
+```
+
+Outputs:
+
+- `reports/game_payoff_matrix.csv`
+- `reports/game_equilibrium.json`
+- `reports/game_sensitivity.csv`
+- `reports/game_theory_report.md`
+
+This reframes the adversarial loop as a finite zero-sum security game and
+provides a minimax equilibrium over attacker strategies and defender thresholds.
+
+Current sensitivity result:
+
+| False-positive weight | Equilibrium loss | Primary attacker | Primary defender threshold |
+|---:|---:|---|---:|
+| 0.25 | 0.031 | obfuscation | 0.25 |
+| 1.00 | 0.100 | nested injection | 0.475 |
+
+Interpretation: when false positives are cheap, the minimax defender becomes
+strict and obfuscation is the binding attacker strategy. When false positives are
+expensive, the defender moves toward the calibrated operating threshold and
+nested injection becomes the most important adversarial pressure.
+
 ## Robustness Tests
 
 The implemented robustness suite checks:

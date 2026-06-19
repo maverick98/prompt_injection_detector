@@ -9,15 +9,14 @@ from prompt_injection_detector.schema import EvasionVariant
 
 LOOKALIKE_MAP = str.maketrans(
     {
-        "a": "а",
-        "e": "е",
-        "o": "о",
-        "p": "р",
-        "c": "с",
-        "x": "х",
+        "a": "\u0430",  # Cyrillic small a
+        "e": "\u0435",  # Cyrillic small ie
+        "o": "\u043e",  # Cyrillic small o
+        "p": "\u0440",  # Cyrillic small er
+        "c": "\u0441",  # Cyrillic small es
+        "x": "\u0445",  # Cyrillic small ha
     }
 )
-
 
 def paraphrase(text: str) -> str:
     replacements = {
@@ -81,18 +80,25 @@ STRATEGIES = {
 @dataclass
 class RuleBasedRedTeamGenerator:
     strategies: list[str] | None = None
+    seed: int | None = None
 
     def generate(self, text: str) -> list[EvasionVariant]:
         strategy_names = self.strategies or list(STRATEGIES)
         variants = []
-        for strategy in strategy_names:
-            variants.append(
-                EvasionVariant(
-                    original_text=text,
-                    variant_text=STRATEGIES[strategy](text),
-                    strategy=strategy,
+        state = random.getstate()
+        if self.seed is not None:
+            random.seed(f"{self.seed}:{text}")
+        try:
+            for strategy in strategy_names:
+                variants.append(
+                    EvasionVariant(
+                        original_text=text,
+                        variant_text=STRATEGIES[strategy](text),
+                        strategy=strategy,
+                    )
                 )
-            )
+        finally:
+            random.setstate(state)
         return variants
 
 
@@ -104,4 +110,3 @@ def score_variants(detector, variants: list[EvasionVariant]) -> list[EvasionVari
         variant.bypassed = not prediction.is_injection
         scored.append(variant)
     return scored
-

@@ -110,3 +110,14 @@ as a research baseline for adversarial prompt-injection experiments.
 
 Use this detector as one layer in a defense-in-depth system. Do not rely on it as
 the only boundary around tools, secrets, documents, or agent actions.
+
+## Strategic Evaluation
+
+For adaptive attackers, use `pid game` to compute a zero-sum payoff matrix over
+red-team strategies and defender threshold policies. The equilibrium value is an
+estimated worst-case defender loss that combines bypass risk and false-positive
+burden under mixed attacker/defender play.
+
+Current sensitivity analysis shows the primary attacker shifts from
+`obfuscation` to `nested_injection` as false-positive cost increases from `0.25`
+to `1.0`, while the defender threshold shifts from `0.25` to `0.475`.

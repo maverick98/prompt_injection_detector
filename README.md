@@ -221,7 +221,30 @@ Outputs:
 - `reports/hard_case_threshold_sweep.csv`
 - `reports/local_evaluation_summary.md`
 
-## 8. Streamlit Demo
+## 8. Game-Theoretic Attacker/Defender Analysis
+
+The adversarial loop can also be analyzed as a finite zero-sum game:
+
+- attacker actions: evasion strategies
+- defender actions: threshold policies
+- defender loss: bypass rate plus weighted false-positive burden
+- defender objective: minimize worst-case security and usability loss
+
+```powershell
+pid game --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib --output-dir reports
+```
+
+Outputs:
+
+- `reports/game_payoff_matrix.csv`
+- `reports/game_equilibrium.json`
+- `reports/game_sensitivity.csv`
+- `reports/game_theory_report.md`
+
+This gives a minimax view of which evasion strategies matter and which threshold
+policy mix is robust against an adaptive attacker without ignoring false alarms.
+
+## 9. Streamlit Demo
 
 ```powershell
 streamlit run src/prompt_injection_detector/app/streamlit_app.py
