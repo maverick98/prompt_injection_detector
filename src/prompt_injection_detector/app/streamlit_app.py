@@ -17,6 +17,7 @@ from prompt_injection_detector.models.classical import (
     train_classical_models,
 )
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
+from prompt_injection_detector.research.risk_physics import analyze_prompt
 
 
 @dataclass(frozen=True)
@@ -81,8 +82,17 @@ def detector_tab(state: DemoState) -> None:
     )
     if st.button("Analyze prompt", type="primary") and prompt.strip():
         prediction = state.detector.predict_one(prompt)
+        research_report = analyze_prompt(
+            prompt,
+            detector_score=prediction.score,
+            detector_threshold=state.detector.threshold,
+        ).to_dict()
         verdict = "Injection Detected" if prediction.is_injection else "Clean"
-        st.metric(verdict, f"{prediction.score:.3f}")
+        cols = st.columns(4)
+        cols[0].metric(verdict, f"{prediction.score:.3f}")
+        cols[1].metric("Risk Energy", f"{research_report['energy_risk']['risk_energy']:.3f}")
+        cols[2].metric("Uncertainty", f"{research_report['conformal_uncertainty']['uncertainty']:.3f}")
+        cols[3].metric("Control", research_report["control_policy"]["action"].title())
         st.write(f"Predicted category: `{prediction.category.value}`")
         with st.expander("Feature signals", expanded=True):
             st.dataframe(
@@ -90,6 +100,33 @@ def detector_tab(state: DemoState) -> None:
                 use_container_width=True,
                 hide_index=True,
             )
+        with st.expander("Mathematical risk explanation", expanded=True):
+            left, right = st.columns(2)
+            with left:
+                st.write("Risk physics")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "signal": key,
+                                "value": value,
+                            }
+                            for key, value in research_report["feature_signals"].items()
+                        ]
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            with right:
+                st.write("Operational decision")
+                st.json(
+                    {
+                        "phase": research_report["phase_transition"]["phase"],
+                        "prediction_set": research_report["conformal_uncertainty"]["prediction_set"],
+                        "nearest_distribution": research_report["optimal_transport"]["nearest_distribution"],
+                        "guardrail": research_report["control_policy"]["guardrail"],
+                    }
+                )
 
 
 def red_team_tab(state: DemoState) -> None:
@@ -205,6 +242,82 @@ def game_tab(state: DemoState) -> None:
         )
 
 
+def research_tab(state: DemoState) -> None:
+    st.subheader("Mathematical Research Signals")
+    st.caption(
+        "Information theory, statistical-physics energy, phase transition bands, "
+        "conformal uncertainty, sequential detection, graph risk, optimal transport, and control policy."
+    )
+    source = st.text_area(
+        "Prompt or multi-turn transcript",
+        value=SAMPLE_PROMPTS["Data extraction"],
+        height=180,
+    )
+    turn_mode = st.checkbox("Treat each line as one conversation turn", value=False)
+    if st.button("Run research analysis", type="primary") and source.strip():
+        turns = [line.strip() for line in source.splitlines() if line.strip()] if turn_mode else None
+        text = turns[-1] if turns else source
+        prediction = state.detector.predict_one(text)
+        report = analyze_prompt(
+            text,
+            detector_score=prediction.score,
+            detector_threshold=state.detector.threshold,
+            turns=turns,
+        ).to_dict()
+
+        cols = st.columns(5)
+        cols[0].metric("Classifier", f"{prediction.score:.3f}")
+        cols[1].metric("Risk Energy", f"{report['energy_risk']['risk_energy']:.3f}")
+        cols[2].metric("Leakage", f"{report['information_leakage']['score']:.3f}")
+        cols[3].metric("Graph Risk", f"{report['graph_risk']['path_risk']:.3f}")
+        cols[4].metric("Action", report["control_policy"]["action"].title())
+
+        st.write("Signal vector")
+        st.dataframe(
+            pd.DataFrame(
+                [{"signal": key, "value": value} for key, value in report["feature_signals"].items()]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        left, middle, right = st.columns(3)
+        with left:
+            st.write("Information theory")
+            st.json(report["information_leakage"])
+        with middle:
+            st.write("Phase and uncertainty")
+            st.json(
+                {
+                    "energy": report["energy_risk"],
+                    "phase": report["phase_transition"],
+                    "conformal": report["conformal_uncertainty"],
+                }
+            )
+        with right:
+            st.write("Transport and control")
+            st.json(
+                {
+                    "optimal_transport": report["optimal_transport"],
+                    "control_policy": report["control_policy"],
+                }
+            )
+
+        st.write("Sequential detector")
+        st.dataframe(
+            pd.DataFrame(report["sequential_detection"]["states"]),
+            use_container_width=True,
+            hide_index=True,
+        )
+        if report["graph_risk"]["dangerous_paths"]:
+            st.write("Graph risk paths")
+            st.dataframe(
+                pd.DataFrame({"path": report["graph_risk"]["dangerous_paths"]}),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+
 def main() -> None:
     st.set_page_config(page_title="Prompt Injection Detector", layout="wide")
     st.title("Prompt Injection Detector")
@@ -213,7 +326,7 @@ def main() -> None:
     state = load_demo_state()
     metric_row(state.test_metrics, state.hard_metrics)
 
-    tabs = st.tabs(["Detector", "Red Team", "Benchmarks", "Game Theory"])
+    tabs = st.tabs(["Detector", "Red Team", "Benchmarks", "Game Theory", "Research Signals"])
     with tabs[0]:
         detector_tab(state)
     with tabs[1]:
@@ -222,8 +335,9 @@ def main() -> None:
         benchmark_tab(state)
     with tabs[3]:
         game_tab(state)
+    with tabs[4]:
+        research_tab(state)
 
 
 if __name__ == "__main__":
     main()
-

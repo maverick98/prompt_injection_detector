@@ -20,6 +20,7 @@ from prompt_injection_detector.models.classical import (
     train_classical_models,
 )
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
+from prompt_injection_detector.research.risk_physics import analyze_prompt
 from prompt_injection_detector.robustness import run_robustness_suite
 
 app = typer.Typer(help="Prompt injection detector research toolkit.")
@@ -73,6 +74,29 @@ def predict(
 ) -> None:
     detector = load_detector(model_path)
     print(detector.predict_one(text).model_dump())
+
+
+@app.command()
+def physics(
+    text: str,
+    model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
+    output: Path | None = typer.Option(None, help="Optional JSON output path."),
+) -> None:
+    """Run mathematical risk analysis: information theory, physics, graph, OT, and control."""
+
+    detector = load_detector(model_path)
+    prediction = detector.predict_one(text)
+    report = analyze_prompt(
+        text,
+        detector_score=prediction.score,
+        detector_threshold=detector.threshold,
+    ).to_dict()
+    report["classifier"] = prediction.model_dump()
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"[green]Wrote mathematical risk report to {output}[/green]")
+    print(json.dumps(report, indent=2))
 
 
 @app.command()
