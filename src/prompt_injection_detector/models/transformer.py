@@ -1,8 +1,31 @@
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
 import pandas as pd
+
+
+def _training_arguments_kwargs(training_arguments_cls: type, output_dir: Path, epochs: int) -> dict:
+    """Build TrainingArguments kwargs across Transformers API versions."""
+
+    kwargs = {
+        "output_dir": str(output_dir),
+        "learning_rate": 2e-5,
+        "per_device_train_batch_size": 16,
+        "per_device_eval_batch_size": 32,
+        "num_train_epochs": epochs,
+        "weight_decay": 0.01,
+        "save_strategy": "epoch",
+        "load_best_model_at_end": True,
+        "metric_for_best_model": "f1",
+    }
+    parameters = inspect.signature(training_arguments_cls).parameters
+    if "evaluation_strategy" in parameters:
+        kwargs["evaluation_strategy"] = "epoch"
+    elif "eval_strategy" in parameters:
+        kwargs["eval_strategy"] = "epoch"
+    return kwargs
 
 
 def fine_tune_transformer(
@@ -53,18 +76,7 @@ def fine_tune_transformer(
         return metric.compute(predictions=predictions, references=labels)
 
     model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
-    args = TrainingArguments(
-        output_dir=str(output_dir),
-        learning_rate=2e-5,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=32,
-        num_train_epochs=epochs,
-        weight_decay=0.01,
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
-        metric_for_best_model="f1",
-    )
+    args = TrainingArguments(**_training_arguments_kwargs(TrainingArguments, output_dir, epochs))
 
     trainer = Trainer(
         model=model,
@@ -79,4 +91,3 @@ def fine_tune_transformer(
     trainer.save_model(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
     return output_dir
-
