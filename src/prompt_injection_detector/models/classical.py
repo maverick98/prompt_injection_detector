@@ -137,6 +137,7 @@ def train_classical_models(
 ) -> TrainedDetector:
     model_names = model_names or list(MODEL_FACTORIES)
     trained: list[TrainedDetector] = []
+    model_comparison: list[dict[str, Any]] = []
 
     for name in model_names:
         pipeline = make_pipeline(name)
@@ -147,6 +148,19 @@ def train_classical_models(
         metrics["validation_operating_points"] = operating_points(
             val["label"].to_numpy(dtype=int),
             val_scores,
+        )
+        injection_metrics = metrics["classification_report"]["1"]
+        model_comparison.append(
+            {
+                "model": name,
+                "threshold": float(threshold),
+                "precision": float(injection_metrics["precision"]),
+                "recall": float(injection_metrics["recall"]),
+                "f1": float(injection_metrics["f1-score"]),
+                "roc_auc": float(metrics["roc_auc"]),
+                "false_positives": int(metrics["confusion_matrix"][0][1]),
+                "false_negatives": int(metrics["confusion_matrix"][1][0]),
+            }
         )
 
         category_pipeline = Pipeline(
@@ -159,7 +173,7 @@ def train_classical_models(
         category_pipeline.fit(injection_train["text"], injection_train["category"])
         trained.append(TrainedDetector(name, pipeline, category_pipeline, threshold, metrics))
 
-    return sorted(
+    best = sorted(
         trained,
         key=lambda item: (
             item.metrics["classification_report"]["1"]["recall"],
@@ -167,6 +181,12 @@ def train_classical_models(
         ),
         reverse=True,
     )[0]
+    best.metrics["model_comparison"] = sorted(
+        model_comparison,
+        key=lambda item: (item["recall"], item["f1"], item["roc_auc"]),
+        reverse=True,
+    )
+    return best
 
 
 def evaluate_detector(detector: TrainedDetector, frame: pd.DataFrame) -> dict[str, Any]:

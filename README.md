@@ -150,10 +150,16 @@ pid train --dataset data/processed/dataset.csv --decision-threshold 0.41
 
 Metrics are written to `reports/test_metrics.json`:
 
+- selected classical baseline
+- validation comparison across Logistic Regression, RBF SVM, and Random Forest
 - precision, recall, F1 per class
 - ROC-AUC
 - confusion matrix
 - per-category detection rate
+
+The `model_comparison` section is the rigorous baseline comparison required by
+Step 2. It reports injection precision, recall, F1, ROC-AUC, false positives,
+false negatives, and the calibrated decision threshold for each baseline.
 
 ## 3. Try Detection
 
@@ -321,13 +327,24 @@ src/prompt_injection_detector/models/transformer.py
 Example usage:
 
 ```python
-from prompt_injection_detector.models.transformer import fine_tune_transformer
+from prompt_injection_detector.models.transformer import evaluate_transformer_model, fine_tune_transformer
 
 fine_tune_transformer(train_frame, val_frame, "artifacts/transformer", model_name="roberta-base")
+transformer_metrics = evaluate_transformer_model(
+    "artifacts/transformer",
+    test_frame,
+    output_path="reports/transformer_metrics.json",
+)
 ```
 
 Use `distilbert-base-uncased` for faster Colab T4 runs and `roberta-base` when
 you can afford a stronger adversarial-text baseline.
+
+You can also evaluate a saved transformer from the CLI:
+
+```powershell
+pid evaluate-transformer --dataset data/processed/dataset.csv --model-dir artifacts/transformer_distilbert --metrics-out reports/transformer_metrics.json
+```
 
 ## Research Notes
 

@@ -21,6 +21,7 @@ from prompt_injection_detector.models.classical import (
     save_detector,
     train_classical_models,
 )
+from prompt_injection_detector.models.transformer import evaluate_transformer_model
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
 from prompt_injection_detector.research.frontier_math import (
     analyze_frontier_dataset,
@@ -88,11 +89,33 @@ def train(
     test_frame = frame[frame["split"] == "test"]
     detector = train_classical_models(train_frame, val_frame, decision_threshold=decision_threshold)
     metrics = evaluate_detector(detector, test_frame)
+    metrics["selected_model"] = detector.name
+    metrics["model_comparison"] = detector.metrics.get("model_comparison", [])
     metrics["validation_operating_points"] = detector.metrics.get("validation_operating_points", {})
     save_detector(detector, model_out)
     metrics_out.parent.mkdir(parents=True, exist_ok=True)
     metrics_out.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(f"[green]Saved {detector.name} detector to {model_out}[/green]")
+    print(f"Recall: {metrics['classification_report']['1']['recall']:.3f}")
+    print(f"ROC-AUC: {metrics['roc_auc']:.3f}")
+
+
+@app.command()
+def evaluate_transformer(
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    model_dir: Path = typer.Option(Path("artifacts/transformer_distilbert")),
+    metrics_out: Path = typer.Option(Path("reports/transformer_metrics.json")),
+    threshold: float = typer.Option(0.5, help="Transformer decision threshold."),
+) -> None:
+    frame = load_frame(dataset)
+    test_frame = frame[frame["split"] == "test"] if "split" in frame.columns else frame
+    metrics = evaluate_transformer_model(
+        model_dir,
+        test_frame,
+        output_path=metrics_out,
+        threshold=threshold,
+    )
+    print(f"[green]Wrote transformer metrics to {metrics_out}[/green]")
     print(f"Recall: {metrics['classification_report']['1']['recall']:.3f}")
     print(f"ROC-AUC: {metrics['roc_auc']:.3f}")
 

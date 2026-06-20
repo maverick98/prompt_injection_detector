@@ -18,3 +18,16 @@ def test_classical_detector_trains_and_predicts():
     assert metrics["classification_report"]["1"]["recall"] >= 0
     assert prediction.is_injection
 
+
+def test_classical_training_compares_required_baselines():
+    frame = pd.DataFrame([sample.model_dump(mode="json") for sample in generate_synthetic_dataset(60, 60)])
+    frame = stratified_split(frame)
+
+    detector = train_classical_models(
+        frame[frame["split"] == "train"],
+        frame[frame["split"] == "val"],
+    )
+
+    compared_models = {row["model"] for row in detector.metrics["model_comparison"]}
+    assert compared_models == {"logistic_regression", "svm_rbf", "random_forest"}
+    assert detector.name in compared_models

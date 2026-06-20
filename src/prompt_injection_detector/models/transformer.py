@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import inspect
+import json
 from pathlib import Path
+from typing import Any
 
+import numpy as np
 import pandas as pd
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+
+
+def _sigmoid(values: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-values))
 
 
 def _training_arguments_kwargs(training_arguments_cls: type, output_dir: Path, epochs: int) -> dict:
@@ -123,3 +131,80 @@ def fine_tune_transformer(
     trainer.save_model(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
     return output_dir
+
+
+def evaluate_transformer_model(
+    model_dir: str | Path,
+    frame: pd.DataFrame,
+    output_path: str | Path | None = None,
+    threshold: float = 0.5,
+    batch_size: int = 32,
+) -> dict[str, Any]:
+    """Evaluate a fine-tuned transformer with the same security metrics as the baseline."""
+
+    try:
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    except ImportError as exc:
+        raise RuntimeError(
+            "Install optional dependencies with `pip install -e .[hf]` to evaluate transformers."
+        ) from exc
+
+    model_dir = Path(model_dir)
+    tokenizer = AutoTokenizer.from_pretrained(str(model_dir))
+    model = AutoModelForSequenceClassification.from_pretrained(str(model_dir))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+
+    texts = frame["text"].astype(str).tolist()
+    scores: list[float] = []
+    with torch.no_grad():
+        for start in range(0, len(texts), batch_size):
+            batch = texts[start : start + batch_size]
+            encoded = tokenizer(batch, truncation=True, padding=True, max_length=256, return_tensors="pt")
+            encoded = {key: value.to(device) for key, value in encoded.items()}
+            logits = model(**encoded).logits.detach().cpu().numpy()
+            if logits.shape[1] == 1:
+                batch_scores = _sigmoid(logits[:, 0])
+            else:
+                exp_logits = np.exp(logits - logits.max(axis=1, keepdims=True))
+                probabilities = exp_logits / exp_logits.sum(axis=1, keepdims=True)
+                batch_scores = probabilities[:, 1]
+            scores.extend(float(score) for score in batch_scores)
+
+    y_true = frame["label"].to_numpy(dtype=int)
+    score_array = np.asarray(scores)
+    y_pred = (score_array >= threshold).astype(int)
+    try:
+        roc_auc = float(roc_auc_score(y_true, score_array))
+    except ValueError:
+        roc_auc = float("nan")
+    metrics: dict[str, Any] = {
+        "model_dir": str(model_dir),
+        "threshold": float(threshold),
+        "classification_report": classification_report(
+            y_true,
+            y_pred,
+            output_dict=True,
+            zero_division=0,
+        ),
+        "roc_auc": roc_auc,
+        "confusion_matrix": confusion_matrix(y_true, y_pred).tolist(),
+        "scores": scores,
+        "predictions": y_pred.tolist(),
+    }
+    injection_frame = frame[frame["label"].astype(int) == 1].copy()
+    if not injection_frame.empty:
+        injection_frame["detected"] = y_pred[frame["label"].astype(int).to_numpy() == 1].astype(bool)
+        metrics["per_category_detection_rate"] = (
+            injection_frame.groupby("category")["detected"].mean().sort_index().to_dict()
+        )
+    else:
+        metrics["per_category_detection_rate"] = {}
+
+    if output_path is not None:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    return metrics
