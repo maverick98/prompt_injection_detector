@@ -1,0 +1,4 @@
+iteration,model,threshold,attack_success_rate,false_negatives,red_team_seed_source,red_team_seed_count,detector_recall,detector_f1,roc_auc,strategy_counts
+1,logistic_regression,0.44500000000000006,0.0,0,detected_injections,100,1.0,1.0,1.0,{}
+2,logistic_regression,0.44500000000000006,0.0,0,detected_injections,100,1.0,1.0,1.0,{}
+3,logistic_regression,0.44500000000000006,0.0,0,detected_injections,100,1.0,1.0,1.0,{}

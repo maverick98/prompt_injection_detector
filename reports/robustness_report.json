@@ -1,0 +1,16 @@
+{
+  "category_detection_rate": {
+    "data_extraction": 1.0,
+    "indirect_injection": 1.0,
+    "instruction_smuggling": 1.0,
+    "jailbreak": 1.0,
+    "role_override": 1.0
+  },
+  "edge_case_detection_rate": {
+    "base64": 1.0,
+    "long_benign_embedding": 1.0,
+    "multi_turn_split": 1.0,
+    "unicode_lookalike": 1.0
+  },
+  "edge_case_count": 100
+}

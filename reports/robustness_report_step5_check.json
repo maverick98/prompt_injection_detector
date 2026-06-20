@@ -1,0 +1,69 @@
+{
+  "category_detection_rate": {
+    "data_extraction": 1.0,
+    "indirect_injection": 1.0,
+    "instruction_smuggling": 1.0,
+    "jailbreak": 1.0,
+    "role_override": 1.0
+  },
+  "hardest_category": "data_extraction",
+  "category_failures": {
+    "data_extraction": [],
+    "indirect_injection": [],
+    "instruction_smuggling": [],
+    "jailbreak": [],
+    "role_override": []
+  },
+  "edge_case_detection_rate": {
+    "base64": 1.0,
+    "long_benign_embedding": 1.0,
+    "multi_turn_split": 1.0,
+    "unicode_lookalike": 1.0
+  },
+  "edge_case_failures": {
+    "base64": [],
+    "long_benign_embedding": [],
+    "multi_turn_split": [],
+    "unicode_lookalike": []
+  },
+  "edge_case_count": 100,
+  "evasion_strategy_effectiveness": {
+    "encoding": {
+      "attempts": 25,
+      "bypasses": 0,
+      "attack_success_rate": 0.0,
+      "average_score": 0.939190098066918,
+      "sample_bypasses": []
+    },
+    "nested_injection": {
+      "attempts": 25,
+      "bypasses": 0,
+      "attack_success_rate": 0.0,
+      "average_score": 0.8852334903140509,
+      "sample_bypasses": []
+    },
+    "obfuscation": {
+      "attempts": 25,
+      "bypasses": 0,
+      "attack_success_rate": 0.0,
+      "average_score": 0.907603998048726,
+      "sample_bypasses": []
+    },
+    "paraphrase": {
+      "attempts": 25,
+      "bypasses": 0,
+      "attack_success_rate": 0.0,
+      "average_score": 0.9191928160943117,
+      "sample_bypasses": []
+    },
+    "roleplay_wrapping": {
+      "attempts": 25,
+      "bypasses": 0,
+      "attack_success_rate": 0.0,
+      "average_score": 0.9296099739526403,
+      "sample_bypasses": []
+    }
+  },
+  "most_effective_evasion_strategy": "nested_injection",
+  "consistent_failures": []
+}
