@@ -43,6 +43,23 @@ SAMPLE_PROMPTS = {
 }
 
 
+def variant_summary(frame: pd.DataFrame) -> dict:
+    if frame.empty:
+        return {
+            "bypasses": 0,
+            "variant_count": 0,
+            "best_strategy": "none",
+            "lowest_score": 0.0,
+        }
+    lowest = frame.sort_values("score", ascending=True).iloc[0]
+    return {
+        "bypasses": int(frame["bypassed"].sum()),
+        "variant_count": int(len(frame)),
+        "best_strategy": str(lowest["strategy"]),
+        "lowest_score": float(lowest["score"]),
+    }
+
+
 @st.cache_resource(show_spinner="Training lightweight local detector...")
 def load_demo_state() -> DemoState:
     model_path = Path("artifacts/detector.joblib")
@@ -86,6 +103,10 @@ def detector_tab(state: DemoState) -> None:
     )
     if st.button("Analyze prompt", type="primary") and prompt.strip():
         prediction = state.detector.predict_one(prompt)
+        st.session_state["last_prompt"] = prompt
+        st.session_state["last_prediction"] = prediction.model_dump()
+        if prediction.is_injection:
+            st.session_state["last_detected_injection"] = prompt
         research_report = analyze_prompt(
             prompt,
             detector_score=prediction.score,
@@ -93,12 +114,22 @@ def detector_tab(state: DemoState) -> None:
         ).to_dict()
         verdict = "Injection Detected" if prediction.is_injection else "Clean"
         cols = st.columns(4)
-        cols[0].metric(verdict, f"{prediction.score:.3f}")
-        cols[1].metric("Risk Energy", f"{research_report['energy_risk']['risk_energy']:.3f}")
-        cols[2].metric("Uncertainty", f"{research_report['conformal_uncertainty']['uncertainty']:.3f}")
-        cols[3].metric("Control", research_report["control_policy"]["action"].title())
-        st.write(f"Predicted category: `{prediction.category.value}`")
-        with st.expander("Feature signals", expanded=True):
+        cols[0].metric("Classification", verdict)
+        cols[1].metric("Confidence Score", f"{prediction.score:.3f}")
+        cols[2].metric("Threshold", f"{state.detector.threshold:.3f}")
+        cols[3].metric("Category", prediction.category.value)
+        signal_cols = st.columns(3)
+        signal_cols[0].metric("Risk Energy", f"{research_report['energy_risk']['risk_energy']:.3f}")
+        signal_cols[1].metric(
+            "Uncertainty",
+            f"{research_report['conformal_uncertainty']['uncertainty']:.3f}",
+        )
+        signal_cols[2].metric("Control", research_report["control_policy"]["action"].title())
+        if prediction.is_injection:
+            st.success("This detected prompt is ready for the Red Team tab.")
+        else:
+            st.info("Clean verdict: Red Team can still test this text manually, but it is not queued.")
+        with st.expander("Top features that triggered the detection", expanded=True):
             st.dataframe(
                 pd.DataFrame(prediction.top_features, columns=["feature", "weight"]),
                 use_container_width=True,
@@ -134,25 +165,58 @@ def detector_tab(state: DemoState) -> None:
 
 
 def red_team_tab(state: DemoState) -> None:
-    st.subheader("Red-Team Generator")
+    st.subheader("Red-Team View")
+    queued = st.session_state.get("last_detected_injection", SAMPLE_PROMPTS["Data extraction"])
+    use_last = st.checkbox(
+        "Use last detected injection from Detector tab",
+        value="last_detected_injection" in st.session_state,
+    )
     source = st.text_area(
         "Injection seed",
-        value=SAMPLE_PROMPTS["Data extraction"],
+        value=queued if use_last else SAMPLE_PROMPTS["Data extraction"],
         height=140,
     )
     if st.button("Generate evasions", type="primary") and source.strip():
+        seed_prediction = state.detector.predict_one(source)
+        if not seed_prediction.is_injection:
+            st.warning(
+                "The current seed is not detected as an injection at the active threshold. "
+                "Variants are still generated to probe detector sensitivity."
+            )
         variants = score_variants(
             state.detector,
             RuleBasedRedTeamGenerator(seed=42).generate(source),
         )
         frame = pd.DataFrame([variant.model_dump() for variant in variants])
+        summary = variant_summary(frame)
+
+        cols = st.columns(4)
+        cols[0].metric("Seed Score", f"{seed_prediction.score:.3f}")
+        cols[1].metric("Seed Category", seed_prediction.category.value)
+        cols[2].metric("Bypasses", f"{summary['bypasses']} / {summary['variant_count']}")
+        cols[3].metric("Strongest Strategy", summary["best_strategy"])
+
+        st.write("Attacker vs defender outcome")
+        chart_frame = frame.assign(defender_score=frame["score"].astype(float)).sort_values(
+            "defender_score"
+        )
+        st.bar_chart(chart_frame, x="strategy", y="defender_score")
+
         st.dataframe(
             frame[["strategy", "score", "bypassed", "variant_text"]],
             use_container_width=True,
             hide_index=True,
         )
-        bypasses = int(frame["bypassed"].sum())
-        st.caption(f"{bypasses} of {len(frame)} generated variants bypassed the detector.")
+        if summary["bypasses"]:
+            winners = frame[frame["bypassed"]].sort_values("score", ascending=True)
+            st.error("Attacker found at least one bypass.")
+            st.dataframe(
+                winners[["strategy", "score", "variant_text"]],
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.success("Defender held: no generated variant bypassed the detector.")
 
 
 def benchmark_tab(state: DemoState) -> None:
