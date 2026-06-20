@@ -239,6 +239,10 @@ Outputs:
 - `reports/adversarial_history.csv`
 - `reports/evasion_variants.csv`
 
+For Colab, the notebook also includes an optional LLM-backed loop section that
+writes `reports/llm_loop/adversarial_history.csv` and
+`reports/llm_adversarial_history.csv` when `RUN_LLM_ADVERSARIAL_LOOP = True`.
+
 Track:
 
 - attack success rate

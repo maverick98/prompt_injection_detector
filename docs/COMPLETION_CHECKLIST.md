@@ -16,6 +16,7 @@
 - [x] Five evasion strategies implemented
 - [x] Optional LLM-backed red-team generation implemented for Gemini, Cohere, OpenAI, and Groq
 - [x] Adversarial loop implemented
+- [x] Optional LLM-backed adversarial loop wired into CLI and Colab
 - [x] Three-iteration local loop executed
 - [x] Robustness suite implemented
 - [x] Robustness report generated locally
@@ -42,5 +43,6 @@
 - [ ] Add public and manually reviewed real-world examples
 - [ ] Run DistilBERT/RoBERTa fine-tuning
 - [ ] Run LLM-backed red-team generation in Colab with user-provided secret
+- [ ] Run LLM-backed adversarial loop in Colab with user-provided secret
 - [ ] Record 2-3 minute demo video
 - [ ] Publish GitHub remote
