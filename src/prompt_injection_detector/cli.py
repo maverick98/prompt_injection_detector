@@ -244,6 +244,9 @@ def benchmark(
     frame = load_frame(dataset)
     test_frame = frame[frame["split"] == "test"] if "split" in frame.columns else frame
     test_metrics = evaluate_detector(detector, test_frame)
+    test_metrics["selected_model"] = detector.name
+    test_metrics["model_comparison"] = detector.metrics.get("model_comparison", [])
+    test_metrics["validation_operating_points"] = detector.metrics.get("validation_operating_points", {})
     hard_metrics = evaluate_hard_cases(detector, output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "hard_case_metrics.json").write_text(

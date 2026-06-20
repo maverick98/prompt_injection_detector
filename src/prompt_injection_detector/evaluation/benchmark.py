@@ -12,6 +12,57 @@ from prompt_injection_detector.evaluation.thresholds import threshold_sweep
 from prompt_injection_detector.models.classical import score_text
 
 
+def _markdown_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]]) -> str:
+    if not rows:
+        return "_Not available in this run. Regenerate with the latest training code._"
+    header = "|" + "|".join(label for label, _ in columns) + "|"
+    separator = "|" + "|".join("---" for _ in columns) + "|"
+    body = []
+    for row in rows:
+        values = []
+        for _, key in columns:
+            value = row.get(key, "")
+            if isinstance(value, float):
+                value = f"{value:.3f}"
+            values.append(str(value))
+        body.append("|" + "|".join(values) + "|")
+    return "\n".join([header, separator, *body])
+
+
+def _format_baseline_comparison(test_metrics: dict[str, Any]) -> str:
+    rows = test_metrics.get("model_comparison", [])
+    return _markdown_table(
+        rows,
+        [
+            ("Model", "model"),
+            ("Threshold", "threshold"),
+            ("Precision", "precision"),
+            ("Recall", "recall"),
+            ("F1", "f1"),
+            ("ROC-AUC", "roc_auc"),
+            ("FP", "false_positives"),
+            ("FN", "false_negatives"),
+        ],
+    )
+
+
+def _format_operating_points(test_metrics: dict[str, Any]) -> str:
+    points = test_metrics.get("validation_operating_points", {})
+    rows = [{"policy": name, **values} for name, values in points.items()]
+    return _markdown_table(
+        rows,
+        [
+            ("Policy", "policy"),
+            ("Threshold", "threshold"),
+            ("Precision", "precision"),
+            ("Recall", "recall"),
+            ("F1", "f1"),
+            ("FP", "false_positives"),
+            ("FN", "false_negatives"),
+        ],
+    )
+
+
 def evaluate_hard_cases(detector, output_dir: str | Path | None = None) -> dict[str, Any]:
     output_dir = Path(output_dir or "reports")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,6 +132,16 @@ def write_research_summary(
 | Injection F1 | {report['1']['f1-score']:.3f} |
 
 Confusion matrix: `{test_metrics['confusion_matrix']}`
+
+Selected classical model: `{test_metrics.get('selected_model', 'unknown')}`
+
+## Classical Baseline Comparison
+
+{_format_baseline_comparison(test_metrics)}
+
+## Validation Operating Points
+
+{_format_operating_points(test_metrics)}
 
 ## Curated Hard Suite
 
