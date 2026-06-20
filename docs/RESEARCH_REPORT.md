@@ -24,7 +24,8 @@ alarm.
 The system has five layers:
 
 1. Dataset builder for clean and injected prompts.
-2. Recall-optimized detector training and evaluation.
+2. Recall-optimized detector training and evaluation, including lexical,
+   semantic-similarity, and transformer paths.
 3. Red-team generator that mutates attacks with five strategies.
 4. Adversarial loop that feeds successful evasions back into training.
 5. Robustness and demo layer for category-level inspection.
@@ -55,10 +56,37 @@ The baseline compares:
 - RBF SVM with calibrated probabilities
 - Random Forest
 
+The project now also includes a MiniLM semantic-similarity detector:
+
+- embeds prompts with `sentence-transformers/all-MiniLM-L6-v2`
+- compares each prompt to known clean and injection reference examples
+- calibrates a recall-first threshold on validation data
+- writes `reports/minilm_semantic_metrics.json`
+
+This adds a semantic retrieval-style signal beside the lexical TF-IDF detector
+and the optional fine-tuned DistilBERT/RoBERTa classifier.
+
 The selected local model is Logistic Regression with a decision threshold of
 `0.13`, chosen to prioritize injection recall.
 
 ## Evaluation
+
+The detector is evaluated as a security classifier, not as a generic text
+classifier. The operating policy is recall-first: false negatives are treated as
+the highest-risk error because they allow malicious prompts to reach the LLM.
+False positives are still measured because they create user friction, but they
+are less costly than missed attacks.
+
+Required metric reporting:
+
+| Metric | Why it matters |
+|---|---|
+| Precision per class | Measures how many flagged prompts are truly malicious, and how trustworthy clean predictions are. |
+| Recall per class | Measures how many real attacks are caught. Injection recall is the primary security metric. |
+| F1 per class | Summarizes the precision/recall tradeoff without hiding the individual values. |
+| ROC-AUC | Measures how well the detector ranks attacks above clean prompts across thresholds. |
+| Confusion matrix | Exposes false negatives and false positives directly. |
+| Per-category detection rate | Shows which attack family is hardest: role override, instruction smuggling, data extraction, jailbreak, or indirect injection. |
 
 Current local metrics on the generated starter split:
 
@@ -219,6 +247,9 @@ streamlit run src/prompt_injection_detector/app/streamlit_app.py
 - The starter dataset is synthetic and template-driven.
 - The local baseline is lexical; transformer fine-tuning is implemented but not
   run in the default local path.
+- The MiniLM semantic baseline is implemented, but its results depend on
+  downloading optional sentence-transformer weights and should be evaluated on
+  the expanded public/manual corpus.
 - No external HuggingFace upload is performed without credentials.
 - No LLM-backed red-team generation is run without an API key.
 - No demo video can be recorded automatically without a screen-recording workflow.
@@ -226,8 +257,9 @@ streamlit run src/prompt_injection_detector/app/streamlit_app.py
 ## Next Steps
 
 1. Add public and manually reviewed examples.
-2. Run transformer fine-tuning on DistilBERT or RoBERTa.
-3. Run the LLM-backed red-team generator with reviewed outputs.
-4. Upload the final dataset to HuggingFace.
-5. Record a 2-3 minute demo video.
-6. Update this report with real adversarial-loop curves from the expanded corpus.
+2. Run MiniLM semantic-similarity evaluation in Colab and compare against TF-IDF.
+3. Run transformer fine-tuning on DistilBERT or RoBERTa.
+4. Run the LLM-backed red-team generator with reviewed outputs.
+5. Upload the final dataset to HuggingFace.
+6. Record a 2-3 minute demo video.
+7. Update this report with real adversarial-loop curves from the expanded corpus.

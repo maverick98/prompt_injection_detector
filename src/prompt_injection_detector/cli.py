@@ -21,6 +21,10 @@ from prompt_injection_detector.models.classical import (
     save_detector,
     train_classical_models,
 )
+from prompt_injection_detector.models.semantic import (
+    DEFAULT_EMBEDDING_MODEL,
+    train_evaluate_semantic_similarity,
+)
 from prompt_injection_detector.models.transformer import evaluate_transformer_model
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
 from prompt_injection_detector.research.frontier_math import (
@@ -116,6 +120,34 @@ def evaluate_transformer(
         threshold=threshold,
     )
     print(f"[green]Wrote transformer metrics to {metrics_out}[/green]")
+    print(f"Recall: {metrics['classification_report']['1']['recall']:.3f}")
+    print(f"ROC-AUC: {metrics['roc_auc']:.3f}")
+
+
+@app.command()
+def evaluate_minilm(
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    metrics_out: Path = typer.Option(Path("reports/minilm_semantic_metrics.json")),
+    model_name: str = typer.Option(DEFAULT_EMBEDDING_MODEL, help="SentenceTransformer embedding model."),
+    top_k: int = typer.Option(5, help="Nearest-reference embeddings averaged per class."),
+    batch_size: int = typer.Option(64, help="Embedding batch size."),
+) -> None:
+    frame = load_frame(dataset)
+    if "split" not in frame.columns or frame["split"].isna().any():
+        frame = stratified_split(frame)
+    train_frame = frame[frame["split"] == "train"]
+    val_frame = frame[frame["split"] == "val"]
+    test_frame = frame[frame["split"] == "test"]
+    metrics = train_evaluate_semantic_similarity(
+        train_frame,
+        val_frame,
+        test_frame,
+        output_path=metrics_out,
+        model_name=model_name,
+        top_k=top_k,
+        batch_size=batch_size,
+    )
+    print(f"[green]Wrote MiniLM semantic metrics to {metrics_out}[/green]")
     print(f"Recall: {metrics['classification_report']['1']['recall']:.3f}")
     print(f"ROC-AUC: {metrics['roc_auc']:.3f}")
 

@@ -10,6 +10,11 @@ The default trained detector is a recall-optimized classical text classifier:
 - category classifier for detected injections
 - threshold selected on validation data to prioritize injection recall
 
+The project also includes optional research detectors:
+
+- MiniLM semantic similarity using `sentence-transformers/all-MiniLM-L6-v2`
+- DistilBERT/RoBERTa fine-tuning for supervised transformer classification
+
 The locally generated artifact is written to:
 
 ```text
@@ -21,6 +26,14 @@ The artifact is ignored by Git because it is generated output.
 ## Current Local Evaluation
 
 Evaluation was run on the generated 1,500-row synthetic starter dataset.
+
+Metric policy:
+
+- optimize first for injection recall, because a false negative is a missed attack
+- report precision, recall, and F1 for both clean and injection classes
+- report ROC-AUC to compare score separation independent of one threshold
+- inspect the confusion matrix to identify false negatives and false positives
+- inspect per-category detection rate to find the weakest injection family
 
 | Metric | Value |
 |---|---:|
@@ -81,6 +94,24 @@ Current detection rate on the starter split:
 | `jailbreak` | 1.000 |
 | `role_override` | 1.000 |
 
+## MiniLM Semantic Similarity Baseline
+
+The MiniLM path embeds prompts into dense semantic vectors and compares each
+test prompt against clean and injection reference examples from the training
+split. It is not a replacement for the fine-tuned transformer classifier; it is
+a complementary retrieval-style detector that asks whether a prompt is
+semantically closer to known attacks or known benign examples.
+
+Run:
+
+```text
+pid evaluate-minilm --dataset data/processed/dataset.csv --metrics-out reports/minilm_semantic_metrics.json
+```
+
+The output contains the same security metrics as the classical and transformer
+paths: precision/recall/F1 per class, ROC-AUC, confusion matrix, per-category
+detection rate, validation operating points, and reference counts.
+
 ## Robustness Edge Cases
 
 Current detection rate on generated edge cases:
@@ -101,6 +132,8 @@ as a research baseline for adversarial prompt-injection experiments.
 
 - The default model is lexical and can miss novel attacks that do not share
   surface features with training data.
+- The MiniLM semantic-similarity path depends on optional HuggingFace /
+  sentence-transformer dependencies and should be calibrated on validation data.
 - Strong synthetic results do not imply production readiness.
 - The transformer path is implemented but requires optional HuggingFace
   dependencies and compute.

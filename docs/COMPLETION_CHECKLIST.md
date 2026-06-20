@@ -8,6 +8,7 @@
 - [x] Dataset generator implemented
 - [x] 1,500-row starter dataset generated locally
 - [x] Classical detector comparison implemented
+- [x] MiniLM semantic-similarity detector implemented
 - [x] Recall-oriented thresholding implemented
 - [x] Trained detector artifact generated locally
 - [x] Evaluation metrics generated locally

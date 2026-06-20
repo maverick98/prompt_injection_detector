@@ -161,6 +161,19 @@ The `model_comparison` section is the rigorous baseline comparison required by
 Step 2. It reports injection precision, recall, F1, ROC-AUC, false positives,
 false negatives, and the calibrated decision threshold for each baseline.
 
+Optional semantic-similarity baseline with MiniLM embeddings:
+
+```powershell
+python -m pip install -e .[hf]
+pid evaluate-minilm --dataset data/processed/dataset.csv --metrics-out reports/minilm_semantic_metrics.json
+```
+
+This uses `sentence-transformers/all-MiniLM-L6-v2` to embed prompts, compares
+each prompt with known clean and injection examples, calibrates a recall-first
+threshold on validation data, and writes the same security metrics. It adds a
+semantic retrieval-style detector alongside the lexical TF-IDF baselines and the
+fine-tuned DistilBERT/RoBERTa path.
+
 ## 3. Try Detection
 
 ```powershell

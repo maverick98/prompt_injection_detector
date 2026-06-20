@@ -54,6 +54,7 @@ Show:
 
 ```powershell
 pid train --dataset data/processed/dataset.csv --model-out artifacts/detector.joblib
+pid evaluate-minilm --dataset data/processed/dataset.csv --metrics-out reports/minilm_semantic_metrics.json
 pid robust --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib
 pid loop --dataset data/processed/dataset.csv --iterations 3 --output-dir reports
 ```
@@ -61,6 +62,7 @@ pid loop --dataset data/processed/dataset.csv --iterations 3 --output-dir report
 Point to:
 
 - `reports/test_metrics.json`
+- `reports/minilm_semantic_metrics.json`
 - `reports/robustness_report.json`
 - `reports/adversarial_history.csv`
 
@@ -69,6 +71,6 @@ Point to:
 Say:
 
 > The local starter dataset validates the full pipeline. The next research step
-> is to add public and manually reviewed attacks, run transformer fine-tuning,
-> and publish the expanded dataset to HuggingFace.
-
+> is to add public and manually reviewed attacks, compare TF-IDF, MiniLM semantic
+> similarity, and transformer fine-tuning, then publish the expanded dataset to
+> HuggingFace.
