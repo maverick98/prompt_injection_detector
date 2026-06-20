@@ -57,6 +57,7 @@ pid train --dataset data/processed/dataset.csv --model-out artifacts/detector.jo
 pid evaluate-minilm --dataset data/processed/dataset.csv --metrics-out reports/minilm_semantic_metrics.json
 pid robust --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib
 pid loop --dataset data/processed/dataset.csv --iterations 3 --output-dir reports
+pid html-report --reports-dir reports --output reports/prompt_injection_research_report.html
 ```
 
 Point to:
@@ -65,6 +66,7 @@ Point to:
 - `reports/minilm_semantic_metrics.json`
 - `reports/robustness_report.json`
 - `reports/adversarial_history.csv`
+- `reports/prompt_injection_research_report.html`
 
 ## 2:10-2:40 Close
 

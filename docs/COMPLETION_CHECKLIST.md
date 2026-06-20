@@ -22,6 +22,7 @@
 - [x] Threshold sweep implemented
 - [x] Plateau-midpoint threshold calibration implemented
 - [x] Local evaluation summary generator implemented
+- [x] Self-contained HTML/SVG/CSS report generator implemented
 - [x] Game-theoretic attacker/defender payoff matrix implemented
 - [x] Zero-sum minimax equilibrium solver implemented
 - [x] Streamlit two-panel demo implemented

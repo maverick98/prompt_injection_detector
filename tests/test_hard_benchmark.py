@@ -71,6 +71,7 @@ def test_research_summary_includes_step2_model_comparison(tmp_path):
     output = write_research_summary(test_metrics, hard_metrics, tmp_path / "summary.md")
     content = output.read_text(encoding="utf-8")
 
-    assert "Classical Baseline Comparison" in content
+    assert "Validation Baseline Comparison" in content
+    assert "held-out test" in content
     assert "logistic_regression" in content
     assert "Validation Operating Points" in content

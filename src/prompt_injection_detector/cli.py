@@ -15,6 +15,7 @@ from prompt_injection_detector.data.public_sources import load_deepset_prompt_in
 from prompt_injection_detector.data.synthetic import generate_synthetic_dataset
 from prompt_injection_detector.evaluation.benchmark import evaluate_hard_cases, write_research_summary
 from prompt_injection_detector.evaluation.game_theory import evaluate_strategy_game, write_game_outputs
+from prompt_injection_detector.evaluation.html_report import write_html_report
 from prompt_injection_detector.models.classical import (
     evaluate_detector,
     load_detector,
@@ -378,6 +379,20 @@ def game(
     print(f"[green]Wrote game report to {paths['report']}[/green]")
     print(f"[green]Wrote game sensitivity analysis to {sensitivity_path}[/green]")
     print(f"Equilibrium defender loss: {result['equilibrium']['value']:.3f}")
+
+
+@app.command()
+def html_report(
+    reports_dir: Path = typer.Option(Path("reports"), help="Directory containing generated metrics."),
+    output: Path = typer.Option(
+        Path("reports/prompt_injection_research_report.html"),
+        help="Self-contained HTML report path.",
+    ),
+) -> None:
+    """Generate a polished self-contained HTML/SVG/CSS research report."""
+
+    report_path = write_html_report(reports_dir=reports_dir, output=output)
+    print(f"[green]Wrote HTML research report to {report_path}[/green]")
 
 
 @app.command()

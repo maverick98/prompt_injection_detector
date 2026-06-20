@@ -29,7 +29,7 @@ def _markdown_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]]) 
     return "\n".join([header, separator, *body])
 
 
-def _format_baseline_comparison(test_metrics: dict[str, Any]) -> str:
+def _format_validation_baseline_comparison(test_metrics: dict[str, Any]) -> str:
     rows = test_metrics.get("model_comparison", [])
     return _markdown_table(
         rows,
@@ -135,9 +135,13 @@ Confusion matrix: `{test_metrics['confusion_matrix']}`
 
 Selected classical model: `{test_metrics.get('selected_model', 'unknown')}`
 
-## Classical Baseline Comparison
+## Validation Baseline Comparison
 
-{_format_baseline_comparison(test_metrics)}
+These rows are computed on the validation split during model selection. The
+starter split section above reports the selected detector on the held-out test
+split.
+
+{_format_validation_baseline_comparison(test_metrics)}
 
 ## Validation Operating Points
 
