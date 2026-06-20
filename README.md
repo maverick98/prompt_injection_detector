@@ -65,8 +65,8 @@ python -m pip install -e .[app,dev]
 Optional extras:
 
 ```powershell
-python -m pip install -e .[hf]   # transformer fine-tuning
-python -m pip install -e .[llm]  # OpenAI-backed red-team variants
+python -m pip install -e .[hf]   # transformer fine-tuning, MiniLM, HuggingFace upload
+python -m pip install -e .[llm]  # Gemini/Cohere/OpenAI/Groq-backed red-team variants
 ```
 
 ## Quick Smoke Test
@@ -126,6 +126,17 @@ Create a starter HuggingFace data card:
 ```powershell
 pid export-hf-data-card --output reports/hf_data_card.md
 ```
+
+Upload the dataset and data card to HuggingFace Datasets after setting a token:
+
+```powershell
+$env:HF_TOKEN="your_huggingface_write_token"
+pid upload-hf-dataset --repo-id your-user/prompt-injection-detector --dataset data/processed/dataset.csv --data-card reports/hf_data_card.md
+```
+
+The upload command validates the minimum row count and all five required
+injection categories before publishing. Keep the token in your shell, Colab
+Secrets, or HuggingFace login state; do not commit it.
 
 ## 2. Train The Detector
 

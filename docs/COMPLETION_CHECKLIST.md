@@ -36,9 +36,12 @@
 - [x] Tests added and passing
 - [x] README written
 - [x] Data card written
+- [x] HuggingFace dataset upload command implemented
 - [x] Model card written
 - [x] Research report written
+- [x] Deliverables status audit written
 - [x] Demo video script written
+- [x] Publish GitHub remote
 
 ## Requires External Credentials, Compute, Or Manual Review
 
@@ -48,4 +51,3 @@
 - [ ] Run LLM-backed red-team generation in Colab with user-provided secret
 - [ ] Run LLM-backed adversarial loop in Colab with user-provided secret
 - [ ] Record 2-3 minute demo video
-- [ ] Publish GitHub remote

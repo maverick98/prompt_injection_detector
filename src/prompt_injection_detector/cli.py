@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -481,6 +482,71 @@ production use.
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")
     print(f"[green]Wrote {output}[/green]")
+
+
+@app.command()
+def upload_hf_dataset(
+    repo_id: str = typer.Option(
+        ...,
+        help="HuggingFace dataset repo, for example username/prompt-injection-detector.",
+    ),
+    dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
+    data_card: Path = typer.Option(Path("reports/hf_data_card.md")),
+    private: bool = typer.Option(True, help="Create or update the dataset as private."),
+    token: Optional[str] = typer.Option(
+        None,
+        help="HuggingFace token. Prefer HF_TOKEN environment variable or Colab Secret.",
+    ),
+    min_rows: int = typer.Option(1500, help="Minimum row count required before upload."),
+) -> None:
+    """Upload the labeled dataset and data card to HuggingFace Datasets."""
+
+    try:
+        from datasets import Dataset, DatasetDict
+        from huggingface_hub import HfApi
+    except ImportError as exc:
+        raise typer.BadParameter("Install optional dependencies with `pip install -e .[hf]`.") from exc
+
+    hf_token = token or os.environ.get("HF_TOKEN")
+    if not hf_token:
+        raise typer.BadParameter("Set HF_TOKEN or pass --token before uploading to HuggingFace.")
+
+    frame = load_frame(dataset)
+    if len(frame) < min_rows:
+        raise typer.BadParameter(f"Dataset has {len(frame)} rows; expected at least {min_rows}.")
+
+    required_categories = {
+        "role_override",
+        "instruction_smuggling",
+        "data_extraction",
+        "jailbreak",
+        "indirect_injection",
+    }
+    categories = set(frame["category"].astype(str))
+    missing = sorted(required_categories - categories)
+    if missing:
+        raise typer.BadParameter(f"Dataset is missing required injection categories: {missing}")
+
+    if "split" in frame.columns:
+        payload = DatasetDict(
+            {
+                split: Dataset.from_pandas(group.reset_index(drop=True), preserve_index=False)
+                for split, group in frame.groupby("split")
+            }
+        )
+    else:
+        payload = Dataset.from_pandas(frame.reset_index(drop=True), preserve_index=False)
+
+    payload.push_to_hub(repo_id, private=private, token=hf_token)
+    if data_card.exists():
+        HfApi().upload_file(
+            path_or_fileobj=str(data_card),
+            path_in_repo="README.md",
+            repo_id=repo_id,
+            repo_type="dataset",
+            token=hf_token,
+        )
+    print(f"[green]Uploaded dataset to https://huggingface.co/datasets/{repo_id}[/green]")
 
 
 if __name__ == "__main__":
