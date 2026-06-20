@@ -256,7 +256,15 @@ Track:
 pid robust --dataset data/processed/dataset.csv --model-path artifacts/detector.joblib
 ```
 
-This reports detection rates by injection category plus edge cases:
+This reports the full Step 5 robustness view:
+
+- detection rate per attack category
+- hardest category
+- evasion-strategy attack success rate
+- most effective evasion strategy
+- consistent failure areas with sampled examples and explanations
+
+It also runs the required edge cases:
 
 - Base64 encoded injections
 - Unicode lookalike substitutions

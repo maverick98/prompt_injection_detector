@@ -19,6 +19,9 @@
 - [x] Optional LLM-backed adversarial loop wired into CLI and Colab
 - [x] Three-iteration local loop executed
 - [x] Robustness suite implemented
+- [x] Per-category robustness detection rates reported
+- [x] Evasion-strategy effectiveness reported
+- [x] Consistent robustness failures and reasons reported
 - [x] Robustness report generated locally
 - [x] Curated hard benchmark implemented
 - [x] Threshold sweep implemented

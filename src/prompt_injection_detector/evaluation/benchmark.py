@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
-
 from prompt_injection_detector.data.hard_cases import build_hard_case_suite
 from prompt_injection_detector.data.io import samples_to_frame
 from prompt_injection_detector.evaluation.metrics import evaluate_binary

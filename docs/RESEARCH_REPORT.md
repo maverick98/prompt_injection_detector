@@ -185,6 +185,10 @@ nested injection becomes the most important adversarial pressure.
 The implemented robustness suite checks:
 
 - category detection rates
+- hardest attack category
+- evasion-strategy attack success rate
+- most effective evasion strategy
+- sampled consistent failures and why they occur
 - Base64 encoded injection variants
 - Unicode lookalike substitutions
 - multi-turn split attacks
@@ -194,6 +198,11 @@ Current local edge-case detection is `1.0` for Base64, multi-turn, and long
 benign-context tests, and `0.88` for Unicode-lookalike substitutions. The Unicode
 gap is a useful next target for character-level features or transformer
 fine-tuning.
+
+The structured `reports/robustness_report.json` artifact now directly answers
+the Step 5 review questions: which category is hardest, which evasion strategy
+is most effective, where the detector fails, and whether the required edge
+cases are detected.
 
 ## Curated Hard Suite
 
