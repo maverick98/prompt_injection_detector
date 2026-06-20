@@ -119,7 +119,13 @@ The generator implements five evasion families:
 - encoding tricks
 - nested injection in benign context
 
-Each variant is scored by the detector and marked as bypassed or blocked.
+Each variant is scored by the detector and marked as bypassed or blocked. The
+default generator is deterministic for reproducible local and Colab runs. The
+project also implements the problem statement's LLM-backed mode through
+`pid redteam --provider gemini|cohere|openai|groq --chain-strategies`, reading
+API keys from runtime environment variables such as `GEMINI_API_KEY` or
+`COHERE_API_KEY`. The Colab notebook loads those values from Colab Secrets, not
+from source code.
 
 ## Adversarial Loop
 

@@ -774,7 +774,7 @@
           <article class="stage-card" style="--accent: var(--blue);"><span class="badge">2</span><strong>Data Layer</strong><span>Synthetic bootstrap data, curated hard cases, labeled categories, train/validation/test split.</span></article>
           <article class="stage-card" style="--accent: var(--red);"><span class="badge">3</span><strong>Detector</strong><span>TF-IDF baselines, MiniLM semantic similarity, optional DistilBERT/RoBERTa, and recall-focused thresholding.</span></article>
           <article class="stage-card" style="--accent: var(--gold);"><span class="badge">4</span><strong>Research Signals</strong><span>Information leakage, risk energy, phase banding, uncertainty, graph risk, transport, control.</span></article>
-          <article class="stage-card" style="--accent: var(--violet);"><span class="badge">5</span><strong>Adaptive Attack</strong><span>Rule-based red team, evasion scoring, adversarial loop, game-theoretic analysis.</span></article>
+          <article class="stage-card" style="--accent: var(--violet);"><span class="badge">5</span><strong>Adaptive Attack</strong><span>Rule-based and optional LLM-backed red team, evasion scoring, adversarial loop, game-theoretic analysis.</span></article>
           <article class="stage-card" style="--accent: var(--teal);"><span class="badge">6</span><strong>Outputs</strong><span>CLI, Streamlit app, Colab notebook, reports, model/data cards, animated documentation.</span></article>
         </div>
       </div>
@@ -869,8 +869,9 @@
       <h2>Red Team And Adversarial Loop</h2>
       <p class="section-intro">
         The red-team module turns seed attacks into evasion variants, then scores each variant with
-        the detector. The adversarial loop uses missed attacks to retrain and re-evaluate the detector,
-        creating an attack-defend-evolve cycle.
+        the detector. It supports a reproducible rule-based generator and an optional LLM-backed
+        generator through Gemini, Cohere, OpenAI, or Groq runtime API keys. The adversarial loop uses
+        missed attacks to retrain and re-evaluate the detector, creating an attack-defend-evolve cycle.
       </p>
       <div class="grid-3">
         <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">
@@ -1175,7 +1176,7 @@
       <div class="grid-3">
         <article class="card" style="--accent: var(--blue); --tone: rgba(36,107,254,.12);">
           <h3>CLI</h3>
-          <p>Commands include build-dataset, train, predict, redteam, loop, robust, benchmark, game, physics, and export-hf-data-card.</p>
+          <p>Commands include build-dataset, train, predict, redteam with LLM providers, loop, robust, benchmark, game, physics, html-report, and export-hf-data-card.</p>
           <code class="formula">pid physics "Ignore previous instructions..."</code>
         </article>
         <article class="card" style="--accent: var(--red); --tone: rgba(229,43,52,.12);">

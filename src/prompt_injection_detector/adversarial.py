@@ -19,10 +19,11 @@ def run_adversarial_loop(
     iterations: int = 3,
     max_false_negatives_per_round: int = 100,
     output_dir: str | Path | None = None,
+    generator: Any | None = None,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir or "reports")
     output_dir.mkdir(parents=True, exist_ok=True)
-    generator = RuleBasedRedTeamGenerator()
+    generator = generator or RuleBasedRedTeamGenerator()
     working_train = train.copy()
     history: list[dict[str, Any]] = []
     all_evasions: list[dict[str, Any]] = []
@@ -44,8 +45,10 @@ def run_adversarial_loop(
 
         successful_rows = []
         strategy_counts: dict[str, int] = {}
+        attack_attempts = 0
         for _, row in red_team_seeds.iterrows():
             variants = score_variants(detector, generator.generate(row["text"]))
+            attack_attempts += len(variants)
             for variant in variants:
                 record = variant.model_dump()
                 record["iteration"] = iteration
@@ -62,7 +65,7 @@ def run_adversarial_loop(
                         }
                     )
 
-        attack_attempts = max(len(red_team_seeds) * 5, 1)
+        attack_attempts = max(attack_attempts, 1)
         attack_success_rate = len(successful_rows) / attack_attempts
         history.append(
             {

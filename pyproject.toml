@@ -30,7 +30,11 @@ hf = [
   "evaluate>=0.4",
   "sentence-transformers>=3.0",
 ]
-llm = ["openai>=1.30"]
+llm = [
+  "cohere>=5.0",
+  "google-genai>=1.0",
+  "openai>=1.30",
+]
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [project.scripts]

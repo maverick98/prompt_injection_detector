@@ -28,6 +28,7 @@ from prompt_injection_detector.models.semantic import (
 )
 from prompt_injection_detector.models.transformer import evaluate_transformer_model
 from prompt_injection_detector.redteam.strategies import RuleBasedRedTeamGenerator, score_variants
+from prompt_injection_detector.redteam.llm_generator import DEFAULT_MODELS, LLMRedTeamGenerator
 from prompt_injection_detector.research.frontier_math import (
     analyze_frontier_dataset,
     analyze_frontier_prompt,
@@ -224,9 +225,44 @@ def frontier(
 def redteam(
     text: str,
     model_path: Path = typer.Option(Path("artifacts/detector.joblib")),
+    provider: str = typer.Option(
+        "rule",
+        help="Variant generator: rule, cohere, openai, groq, or gemini.",
+    ),
+    llm_model: Optional[str] = typer.Option(None, help="Optional provider model override."),
+    chain_strategies: bool = typer.Option(False, help="Generate extra chained-strategy variants."),
+    fallback_to_rules: bool = typer.Option(
+        True,
+        help="Fallback to deterministic variants if an LLM call fails.",
+    ),
+    output: Optional[Path] = typer.Option(None, help="Optional JSON output path."),
 ) -> None:
     detector = load_detector(model_path)
-    variants = score_variants(detector, RuleBasedRedTeamGenerator().generate(text))
+    provider_name = provider.lower().strip()
+    if provider_name == "rule":
+        generator = RuleBasedRedTeamGenerator()
+    else:
+        generator = LLMRedTeamGenerator(
+            provider=provider_name,
+            model=llm_model or DEFAULT_MODELS.get(provider_name),
+            chain_strategies=chain_strategies,
+            fallback_to_rules=fallback_to_rules,
+        )
+    variants = score_variants(detector, generator.generate(text))
+    best = sorted(variants, key=lambda item: (not bool(item.bypassed), item.score or 1.0))[0]
+    payload = {
+        "provider": provider_name,
+        "model": llm_model or ("rule_based" if provider_name == "rule" else DEFAULT_MODELS.get(provider_name)),
+        "best_evasion": best.model_dump(),
+        "variants": [variant.model_dump() for variant in variants],
+    }
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        print(f"[green]Wrote red-team results to {output}[/green]")
+    print("[bold]Best evasion[/bold]")
+    print(payload["best_evasion"])
+    print("[bold]All variants[/bold]")
     for variant in variants:
         print(variant.model_dump())
 
@@ -236,16 +272,36 @@ def loop(
     dataset: Path = typer.Option(Path("data/processed/dataset.csv")),
     iterations: int = 3,
     output_dir: Path = typer.Option(Path("reports")),
+    generator_provider: str = typer.Option(
+        "rule",
+        help="Adversarial-loop generator: rule, cohere, openai, groq, or gemini.",
+    ),
+    llm_model: Optional[str] = typer.Option(None, help="Optional provider model override."),
+    chain_strategies: bool = typer.Option(False, help="Generate chained LLM evasion strategies."),
+    fallback_to_rules: bool = typer.Option(
+        True,
+        help="Fallback to deterministic variants if an LLM call fails.",
+    ),
 ) -> None:
     frame = load_frame(dataset)
     if "split" not in frame.columns or frame["split"].isna().any():
         frame = stratified_split(frame)
+    generator = None
+    provider_name = generator_provider.lower().strip()
+    if provider_name != "rule":
+        generator = LLMRedTeamGenerator(
+            provider=provider_name,
+            model=llm_model or DEFAULT_MODELS.get(provider_name),
+            chain_strategies=chain_strategies,
+            fallback_to_rules=fallback_to_rules,
+        )
     result = run_adversarial_loop(
         frame[frame["split"] == "train"],
         frame[frame["split"] == "val"],
         frame[frame["split"] == "test"],
         iterations=iterations,
         output_dir=output_dir,
+        generator=generator,
     )
     print(json.dumps(result, indent=2))
 

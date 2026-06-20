@@ -14,6 +14,7 @@
 - [x] Evaluation metrics generated locally
 - [x] Red-team generator implemented
 - [x] Five evasion strategies implemented
+- [x] Optional LLM-backed red-team generation implemented for Gemini, Cohere, OpenAI, and Groq
 - [x] Adversarial loop implemented
 - [x] Three-iteration local loop executed
 - [x] Robustness suite implemented
@@ -40,6 +41,6 @@
 - [ ] Upload final dataset to HuggingFace
 - [ ] Add public and manually reviewed real-world examples
 - [ ] Run DistilBERT/RoBERTa fine-tuning
-- [ ] Run LLM-backed red-team generation with API key
+- [ ] Run LLM-backed red-team generation in Colab with user-provided secret
 - [ ] Record 2-3 minute demo video
 - [ ] Publish GitHub remote
